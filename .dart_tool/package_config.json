@@ -155,7 +155,7 @@
       "name": "typing_tutor_flutter",
       "rootUri": "../",
       "packageUri": "lib/",
-      "languageVersion": "2.17"
+      "languageVersion": "3.5"
     }
   ],
   "generator": "pub",
