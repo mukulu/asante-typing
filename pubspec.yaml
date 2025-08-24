@@ -1,0 +1,28 @@
+name: typing_tutor_flutter
+description: |
+  A web‑based typing tutor inspired by the Klavaro typing tutor but
+  organised around the lesson structure of the QuickQWERTY project.  
+  This Flutter project consumes the QuickQWERTY unit definitions and
+  presents them in an accessible, responsive user interface suitable
+  for web deployment.  It focuses on correctness, timing metrics
+  and intuitive progression through the curriculum.
+
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ">=2.17.0 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/units.json
