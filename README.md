@@ -1,4 +1,3 @@
-````markdown
 # Asante Typing Tutor
 
 Asante Typing Tutor is a clean, data-driven typing practice app built with **Flutter**.  
@@ -80,7 +79,7 @@ Verify your setup:
 ```bash
 flutter --version
 flutter doctor
-````
+```
 
 ### Download
 
@@ -280,6 +279,3 @@ Copyright © **John Francis Mukulu SJ**, 2025 — [https://mukulu.org](https://m
 
 > Unless a `LICENSE` file is present, all rights are reserved.
 > To open-source, add a license file (e.g., MIT or Apache-2.0) and update this section accordingly.
-
-```
-```
