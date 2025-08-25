@@ -178,7 +178,41 @@ class _TutorPageState extends State<TutorPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_dynamicTitle),
+        title: const SizedBox.shrink(),
+        flexibleSpace: SafeArea(
+          child: Stack(
+            children: [
+              // Left brand
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Asante Typing',
+                    style: TextStyle(
+                      color: kColorYellow,                // ← yellow text (top)
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+              ),
+              // Center dynamic lesson title
+              Align(
+                child: Text(
+                  _dynamicTitle,                          // your computed title
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: kColorYellow,                  // ← yellow text (top)
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         backgroundColor: kColorGreen,
         foregroundColor: kColorRed,
         centerTitle: true,
@@ -254,12 +288,19 @@ class _TutorPageState extends State<TutorPage> {
                     const SizedBox(height: 8),
                   ],
                   // Guide text
-                  Text(
-                    _stripHtml(selectedLesson.guide),
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: kColorRed),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.only(top: 8),
+                    decoration: BoxDecoration(
+                      color: kColorYellow.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      _stripHtml(selectedLesson.guide),
+                      textAlign: TextAlign.left,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   if (_selectedSubunit == null) ...[
@@ -278,6 +319,7 @@ class _TutorPageState extends State<TutorPage> {
                       controller: _controller,
                       autofocus: true,
                       maxLines: null,
+                      style: const TextStyle(fontSize: 20),
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
                         hintText: 'Start typing here…',
@@ -335,7 +377,7 @@ class _TutorPageState extends State<TutorPage> {
     }
     return RichText(
       text: TextSpan(
-        style: const TextStyle(fontSize: 16, color: Colors.black),
+        style: const TextStyle(fontSize: 20, color: Colors.black),
         children: spans,
       ),
     );

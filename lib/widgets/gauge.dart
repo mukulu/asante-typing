@@ -11,8 +11,13 @@ import 'package:flutter/material.dart';
 class Gauge extends StatelessWidget {
   /// Creates a gauge with the given [label], [value] and [max] target.
   const Gauge({
-    required this.label, required this.value, required this.max, super.key,
-    this.size = 84,
+    required this.label, 
+    required this.value, 
+    required this.max, 
+    super.key,
+    this.size = 110,
+    this.iconSize = 28,
+    this.icon = Icons.speed,
   });
 
   /// Label shown below the value (for example, `WPM` or `CPM`).
@@ -28,29 +33,49 @@ class Gauge extends StatelessWidget {
   /// Diameter of the gauge in logical pixels.
   final double size;
 
+  final double iconSize;
+
+  final IconData icon;
+
   @override
   Widget build(BuildContext context) {
     // Clamp ratio between 0 and 1 to avoid overflow.
-    final ratio = max > 0 ? (value / max).clamp(0.0, 1.0) : 0.0;
-    final display = value.isFinite ? value.toStringAsFixed(0) : '0';
+    final clamped = value.isFinite ? value.clamp(0, max).toDouble() : 0.0;
+    final progress = max == 0 ? 0.0 : (clamped / max);
     return SizedBox(
       width: size,
       height: size,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          CircularProgressIndicator(
-            value: ratio,
-            strokeWidth: 6,
-            backgroundColor: Colors.grey.shade300,
-            valueColor: const AlwaysStoppedAnimation<Color>(kColorGreen),
+          // Track
+          SizedBox(
+            width: size,
+            height: size,
+            child: CircularProgressIndicator(
+              value: progress,
+              strokeWidth: 8,
+              backgroundColor: Colors.grey.shade300,
+              valueColor: const AlwaysStoppedAnimation<Color>(kColorGreen),
+            ),
           ),
+          // Center content (icon + value)
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Icon(icon, size: iconSize, color: kColorRed),
+              const SizedBox(height: 4),
               Text(
-                display,
+                value.isFinite ? value.toStringAsFixed(0) : '0',
                 style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,       // ensure it sits cleanly in center
+                ),
+              ),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                   color: kColorRed,
                 ),

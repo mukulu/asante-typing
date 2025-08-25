@@ -27,7 +27,10 @@ class SubunitChips extends StatelessWidget {
       children: [
         for (final key in keys)
           ChoiceChip(
-            label: Text(key),
+            label: Text(
+              key,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
             selected: selectedKey == key,
             selectedColor: kColorGreen.withValues(alpha: 0.2),
             onSelected: (selected) {

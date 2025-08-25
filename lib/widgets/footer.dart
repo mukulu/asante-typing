@@ -17,7 +17,10 @@ class Footer extends StatelessWidget {
       child: const Text(
         'Asante Typing Tutor © John Francis Mukulu SJ 2025 - mukulu.org',
         textAlign: TextAlign.center,
-        style: TextStyle(color: kColorRed),
+        style: TextStyle(
+          color: kColorYellow,
+          fontSize: 12,
+          ),
       ),
     );
   }

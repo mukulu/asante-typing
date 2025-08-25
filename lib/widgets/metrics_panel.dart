@@ -49,9 +49,9 @@ class MetricsPanel extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           children: [
-            Gauge(label: 'WPM', value: wpm, max: 60),
+            Gauge(label: 'WPM', value: wpm, max: 60, size: 120, iconSize: 30),
             const SizedBox(width: 24),
-            Gauge(label: 'CPM', value: cpm, max: 300),
+            Gauge(label: 'CPM', value: cpm, max: 300, size: 120, iconSize: 30),
           ],
         ),
         const SizedBox(height: 8),

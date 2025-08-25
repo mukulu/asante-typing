@@ -38,7 +38,10 @@ class LeftNav extends StatelessWidget {
             selectedTileColor: kColorGreen.withValues(alpha: 0.15),
             selectedColor: kColorRed,
             textColor: kColorRed,
-            title: Text('Unit ${index + 1}: ${lesson.title}'),
+            title: Text(
+              'Unit ${index + 1}: ${lesson.title}',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
             onTap: () => onSelect(index),
           );
         },
