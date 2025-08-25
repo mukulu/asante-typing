@@ -16,8 +16,11 @@ void main() {
 
   group('fingerAssetForUnit', () {
     test('returns correct mapping for early units', () {
-      expect(fingerAssetForUnit(0), equals('assets/img/home-keys-position.svg.png'));
+      // Units 0–2 (1-based 1–3) map to home row JPG.
+      expect(fingerAssetForUnit(0), equals('assets/img/home-keys-position.jpg'));
+      // Unit index 3 (1-based 4) maps to forefingers.
       expect(fingerAssetForUnit(3), equals('assets/img/forefingers.jpg'));
+      // Unit index 5 (1-based 6) maps to middle fingers.
       expect(fingerAssetForUnit(5), equals('assets/img/middlefingers.jpg'));
     });
     test('returns qwerty for mid units', () {

@@ -1,68 +1,30 @@
 # Asante Typing Tutor
 
-Asante Typing Tutor is a clean, data-driven typing practice app built with **Flutter**.  
-Lessons (titles, guides, images, and sub-units) are defined in a single JSON file, so content can be edited without touching code.
+Asante Typing Tutor is a clean, data‑driven typing practice application built with **Flutter**.  The app teaches proper touch‑typing technique through a series of units and sub‑units and provides real‑time feedback on speed and accuracy.
 
----
-
-## Table of Contents
-
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Download](#download)
-  - [Run (Debug)](#run-debug)
-  - [Build (Release)](#build-release)
-- [Project Structure](#project-structure)
-- [Configuration](#configuration)
-  - [Assets](#assets)
-  - [Lesson Data (`units.json`)](#lesson-data-unitsjson)
-- [How It Works](#how-it-works)
-- [Development Standards](#development-standards)
-- [Quality & Linting](#quality--linting)
-- [Documentation](#documentation)
-- [Repository](#repository)
-- [Contributing](#contributing)
-- [License](#license)
+All lesson content – titles, guides, images and exercises – is defined in a single JSON file (`assets/units.json`), making it easy to author new lessons without changing any Dart code.  The UI is composed of small, reusable widgets to aid maintainability and readability.
 
 ---
 
 ## Features
 
-- **Ready-to-type on load**
-  - Automatically selects **Unit 1 → first sub-unit**, focuses the typing box, and starts in a ready stance.
-  - When switching units, the **last active sub-unit** is restored (if visited).
-- **Clear navigation & context**
-  - The **selected unit** and **sub-unit** are visibly highlighted.
-  - The top bar shows a dynamic, real-time title such as  
-    **“Unit 1: asdf jkl; – Grip”**.
-- **Data-driven UI (no hard-coding)**
-  - Guide text and image(s) are rendered **from `assets/units.json`**.
-  - **No limit on sub-units**—_all_ sub-units in JSON are rendered in the order provided.
-- **Live metrics**
-  - Progress (typed vs total), live **WPM** and **CPM** indicators, error count, and elapsed time.
-  - Visual elements include a filling progress bar and simple gauges (speedometer-like feel).
-- **Inline session summary**
-  - When a sub-unit is completed, results appear **below** the real-time metrics (no modal pop-ups).
-- **Consistent theming**
-  - Palette:
-    - Yellow `#f4b233`
-    - Green `#1f5f45`
-    - Red `#7a1717` (accent)
-  - Header & footer in green; left panel in yellow; key text accents in red.
-- **Footer**
-  - Centered copyright:
-    ```
-    Asante Typing Tutor © John Francis Mukulu SJ 2025 - mukulu.org
-    ```
+* **Ready‑to‑type on launch** – When the app starts it automatically selects the first unit and its first sub‑unit and focuses the typing box.
+* **Smart navigation** – Selected units and sub‑units are highlighted.  Each unit remembers the last sub‑unit you practised and restores it when you return.
+* **Data‑driven UI** – Lessons are rendered from `assets/units.json`.  There is no hard‑coded limit on the number of sub‑units; the app iterates over whatever keys appear in the JSON.
+* **Guide and image support** – Each lesson can display one or more images along with introductory guide text.  The guide text is HTML but rendered as plain text in the app.
+* **Real‑time metrics** – A progress bar shows how much of the text has been typed, while gauges display words per minute (WPM) and characters per minute (CPM).  Errors and elapsed time are updated every second.
+* **Inline session summary** – When you finish typing a sub‑unit, a summary panel appears below the metrics showing length, typed characters, errors, WPM, CPM, accuracy and total time.
+* **Modular architecture** – The UI is broken into smaller widgets such as `LeftNav`, `SubunitChips`, `MetricsPanel`, `SessionSummary`, and `Footer`.  Each widget lives in its own file under `lib/widgets` and is documented with Dart doc comments.
+* **Consistent theming** – A three‑colour palette (yellow `#f4b233`, green `#1f5f45`, red `#7a1717`) is applied throughout the app.  The header and footer are green, the navigation panel is yellow and accent text is red.
+* **GPL‑3.0 licensing** – The project is licensed under the GNU General Public License v3.0 or later.  See the `LICENSE` file for details.
 
 ---
 
 ## Tech Stack
 
-- **Flutter** (Dart)
-- Pure Flutter widgets (no native plugins required)
+* [Flutter](https://flutter.dev/) / [Dart](https://dart.dev/)
+* Pure Flutter widgets (no platform channels)
+* JSON for lesson data
 
 ---
 
@@ -70,50 +32,34 @@ Lessons (titles, guides, images, and sub-units) are defined in a single JSON fil
 
 ### Prerequisites
 
-- Flutter **3.x** (or newer)
-- Dart SDK (bundled with Flutter)
-- A connected device or emulator/simulator
+* Flutter **3.x** (or newer).  Use `flutter --version` to check your installation.
+* A device or emulator/simulator to run the app.
 
-Verify your setup:
-
-```bash
-flutter --version
-flutter doctor
-```
-
-### Download
+### Installation
 
 ```bash
 git clone https://github.com/mukulu/asante-typing.git
 cd asante-typing
-# (optional) check out the active branch
-git checkout feat/unified-layout
-```
-
-### Run (Debug)
-
-```bash
+git checkout feat/unified-layout # or the branch you wish to run
 flutter pub get
-flutter run
 ```
 
-Run on web:
+### Running
 
 ```bash
+# Run on a connected device or emulator
+flutter run
+
+# Run in the Chrome browser
 flutter run -d chrome
 ```
 
-### Build (Release)
+### Building Release Binaries
 
 ```bash
-# Web
-flutter build web
-
-# Android
-flutter build apk
-
-# iOS (on macOS with Xcode)
-flutter build ios
+flutter build apk    # Android release
+flutter build ios    # iOS release (requires macOS and Xcode)
+flutter build web    # Web release
 ```
 
 ---
@@ -123,159 +69,121 @@ flutter build ios
 ```
 asante-typing/
 ├─ assets/
-│  ├─ img/                 # JPG images used by lessons
-│  └─ units.json           # All lesson data (titles, guides, images, sub-units)
+│  ├─ img/                # JPG images used by lessons
+│  └─ units.json          # All lesson data (titles, guides, images, sub‑units)
 ├─ lib/
 │  ├─ models/
-│  │  └─ units.dart        # Units/Sub-units data model
+│  │  └─ units.dart       # Data models for lessons and units
+│  ├─ utils/
+│  │  └─ typing_utils.dart# Helper functions (formatting, image fallback)
+│  ├─ widgets/
+│  │  ├─ footer.dart      # Footer bar widget
+│  │  ├─ gauge.dart       # Reusable circular gauge widget for metrics
+│  │  ├─ left_nav.dart    # Left navigation panel showing units
+│  │  ├─ metrics_panel.dart# Real‑time metrics and visualisations
+│  │  ├─ session_summary.dart# Session summary card for completed practice
+│  │  └─ subunit_chips.dart# Chips for sub‑unit selection
 │  ├─ screens/
-│  │  └─ tutor_page.dart   # Main screen (unified layout, metrics, visuals)
-│  └─ utils/
-│     └─ typing_utils.dart # Helpers (e.g., formatDuration)
-├─ pubspec.yaml
-└─ README.md
+│  │  └─ tutor_page.dart  # Main page that composes widgets into layout
+│  └─ main.dart           # Entry point of the Flutter application
+├─ test/
+│  └─ typing_utils_test.dart # Unit tests for utilities
+├─ pubspec.yaml           # Flutter package configuration and asset list
+├─ LICENSE                # GPL‑3.0 or later license text
+└─ README.md              # This file
 ```
 
----
+### Note on `units.json`
 
-## Configuration
-
-### Assets
-
-Declare assets in `pubspec.yaml`:
-
-```yaml
-flutter:
-  assets:
-    - assets/units.json
-    - assets/img/
-```
-
-* Use **JPG** images in `assets/img/`.
-* In `units.json`, image paths can be either `"img/file.jpg"` or `"assets/img/file.jpg"` (both are supported).
-
-### Lesson Data (`units.json`)
-
-A minimal example:
+The `assets/units.json` file is the single source of truth for all lessons.  Each entry in the `main` array defines a lesson with the following structure:
 
 ```json
 {
-  "main": [
-    {
-      "title": "asdf jkl;",
-      "guide": "<p>Intro and hand placement tips…</p>",
-      "images": ["img/home-row.jpg"],
-      "subunits": {
-        "Grip": "aaaa ssss dddd ffff jjjj kkkk llll ;;;;",
-        "Word": "as as as sa sa sa …",
-        "Control": "…",
-        "Sentence": "…",
-        "Test": "…"
-      }
-    }
-  ]
+  "title": "asdf jkl;",
+  "guide": "<p>Place fingers on the home row…</p>",
+  "images": ["img/home-keys-position.jpg"],
+  "subunits": {
+    "Grip": "asdf ;lkj asdf ;lkj …",
+    "Words": "a a a; as as as; …",
+    "Control": "d da dad; a al…",
+    "Sentences": "ask sall; ask sall; …",
+    "Test": "as all alfalfa; …"
+  }
 }
 ```
 
-Notes:
+* The **title** appears in the navigation list and as part of the dynamic page title.
+* The **guide** is HTML but rendered as plain text by the app.
+* The **images** array lists diagrams associated with the lesson.  Only the first image is shown by default.
+* The **subunits** object contains any number of practice sections; keys become tab labels in the UI.
 
-* **title**: Displayed next to the unit number (e.g., “Unit 1: asdf jkl;”).
-* **guide**: HTML allowed; rendered as plain text for clarity.
-* **images**: The **first** image is used as the lesson’s diagram.
-* **subunits**: Keys become clickable chips. Include **any number** of sub-units; they render in JSON order.
-
----
-
-## How It Works
-
-* On first launch, the app auto-selects **Unit 1 → first sub-unit** and focuses the input field.
-* Switching units restores the **last visited sub-unit** (or defaults to the first).
-* The timer starts on the first keystroke; **metrics** update every second.
-* When the typed text reaches the target length, the **Session Summary** appears **inline** under the live metrics.
+Feel free to add new lessons by editing this file and adding corresponding JPG images under `assets/img/`.
 
 ---
 
 ## Development Standards
 
-* Prefer modern APIs (e.g., **`color.withValues(alpha: …)`** instead of deprecated `withOpacity`).
-* Avoid unnecessary local type annotations; rely on inference where clear.
-* Keep constructors **before** other class members.
-* Avoid non-null assertions (`!`) where receivers cannot be null.
-* Ensure files end with a trailing newline.
-* Do not hard-code sub-unit lists or assume a fixed count (use `units.json`).
+The codebase follows several conventions to improve readability and maintainability:
 
----
+* Files and classes are organised by concern: models (`lib/models`), utility functions (`lib/utils`), widgets (`lib/widgets`), and screens (`lib/screens`).
+* Each public class, function and method is documented with Dart doc comments (`///`) to enable API documentation generation.
+* Constructors are declared before other instance members.
+* The Dart formatter is applied (`dart format .`) to ensure consistent style.
+* Imports are sorted: `package:` imports before relative `../` imports.
+* No deprecated APIs are used – colour transparencies are set via `withValues(alpha: …)` rather than the deprecated `withOpacity()`.
+* Each Dart file ends with a newline character.
 
-## Quality & Linting
-
-Run analysis and formatting before committing:
+To verify code quality, run:
 
 ```bash
 flutter analyze
 dart format --set-exit-if-changed .
 ```
 
-Recommended rules (already reflected in code):
-
-* No deprecated APIs.
-* No unnecessary type annotations.
-* Constructors before non-constructor members.
-* No unused imports or dead code.
-
 ---
 
-## Documentation
+## Generating Documentation
 
-* All lesson authoring lives in **`assets/units.json`** (see example above).
-* To add a lesson:
+You can generate API documentation using Dart doc tools.  For example:
 
-  1. Add JPGs under `assets/img/`.
-  2. Add the new lesson object to `assets/units.json`.
-  3. Keep sub-unit keys in your desired display order.
-  4. Run `flutter pub get` (if new assets) and start the app.
+```bash
+dart doc --output docs/html
+```
 
----
-
-## Repository
-
-* Main repo: [https://github.com/mukulu/asante-typing](https://github.com/mukulu/asante-typing)
-* Active feature branch: `feat/unified-layout`
+This command produces HTML documentation in the `docs/html` directory.  The doc comments in each file provide descriptions of classes, methods and parameters.
 
 ---
 
 ## Contributing
 
-1. Fork and clone the repository.
+We welcome contributions!  To submit a change:
 
-2. Create a feature branch from `feat/unified-layout`:
+1. Fork and clone the repository.
+2. Create a feature branch based off `feat/unified-layout`:
 
    ```bash
    git checkout feat/unified-layout
-   git checkout -b feat/your-feature
+   git checkout -b your-feature-branch
    ```
 
-3. Make changes and run:
+3. Make your changes.  Please keep code modular and documented.
+4. Run formatting and analysis:
 
    ```bash
-   flutter analyze
    dart format .
-   # flutter test   # (enable when tests are added)
+   flutter analyze
    ```
 
-4. Commit with clear messages and open a Pull Request.
+5. Commit with a clear message and open a Pull Request targeting `feat/unified-layout`.
 
-Please avoid:
-
-* Re-introducing deprecated APIs.
-* Hard-coding sub-unit lists or counts.
-* Adding SVGs (use JPGs in `assets/img/`).
-* UI color drift from the palette: `#f4b233`, `#1f5f45`, `#7a1717`.
+When adding features, avoid hard‑coding lesson data or number of subunits.  Always refer to `units.json`.  Maintain the colour palette and ensure no deprecated APIs are introduced.
 
 ---
 
-# License — GNU General Public License v3.0
+## License
 
-This repository is licensed under the **GNU General Public License, version 3 (GPL-3.0)**.  
-You can read the full text from `LICENSE` at the root of this project.
+This project is licensed under the **GNU General Public License v3.0 or later (GPL‑3.0‑or‑later)**.
 
-Copyright © **John Francis Mukulu SJ**, 2025 — [https://mukulu.org](https://mukulu.org)
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+Copyright © **John Francis Mukulu SJ**, 2025

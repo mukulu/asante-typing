@@ -46,8 +46,10 @@ class Lesson {
 
   /// Mapping from subunit name (e.g. `Grip`, `Words`) to practice strings.
   final Map<String, String> subunits;
-}
 
+  @override
+  String toString() => r'Lesson(title: $title, subunits: ${subunits.length}, images: ${images.length})';
+}
 /// Container for the collection of units. Contains the primary [main] list and
 /// an optional [alt] list for alternate layouts or number‑key lessons.
 class UnitsData {
@@ -68,4 +70,7 @@ class UnitsData {
 
   /// Optional alternate lessons (e.g. number split style).
   final List<Lesson>? alt;
+
+  @override
+  String toString() => r'UnitsData(main: ${main.length}, alt: ${alt?.length ?? 0})';
 }

@@ -8,16 +8,23 @@ String formatDuration(Duration d) {
   return '$minutes:$seconds';
 }
 
-/// Maps a 0‑based unit index to an asset path under `assets/img/` for finger diagrams.
+/// Maps a zero‑based unit index to an asset path under `assets/img/` for
+/// finger diagrams.
 ///
-/// Units 1–3: home keys; 4–5: forefingers; 6: middle fingers; 7: ring fingers;
-/// 8: little fingers; 9: left hand; 10: right hand; 11: little+forefingers;
-/// 12–21: qwerty image; 22–28: all fingers.
+/// The returned string includes the `assets/img/` prefix and points to a JPG
+/// image. Units 1–3 display the home row positioning (`home-keys-position.jpg`);
+/// units 4–5 show the forefingers (`forefingers.jpg`); unit 6 uses the
+/// middle finger diagram (`middlefingers.jpg`); unit 7 uses the ring fingers
+/// (`ringfingers.jpg`); unit 8 uses the little fingers (`littlefingers.jpg`);
+/// unit 9 uses the left hand (`leftfingers.jpg`); unit 10 uses the right
+/// hand (`rightfingers.jpg`); unit 11 shows both little and forefingers
+/// (`littleandforefingers.jpg`); units 12–21 use the full QWERTY diagram
+/// (`qwerty.jpg`); units 22–28 display all fingers (`allfingers.jpg`).
 String? fingerAssetForUnit(int unitIndex) {
   final n = unitIndex + 1;
   String file;
   if (n <= 3) {
-    file = 'home-keys-position.svg.png';
+    file = 'home-keys-position.jpg';
   } else if (n <= 5) {
     file = 'forefingers.jpg';
   } else if (n == 6) {
