@@ -8,6 +8,7 @@ class Lesson {
     required this.title,
     required this.guide,
     required this.subunits,
+    required this.images,
   });
 
   /// Creates a [Lesson] from a JSON map.
@@ -17,10 +18,20 @@ class Lesson {
     for (final entry in rawSubs.entries) {
       subs[entry.key] = entry.value.toString();
     }
+    // Parse image list. Accepts both `Img` (preferred) and `img` keys.
+    final imgs = <String>[];
+    final dynamic rawImgs = json['Img'] ?? json['img'];
+    if (rawImgs is List) {
+      for (final item in rawImgs) {
+        final str = item.toString();
+        if (str.isNotEmpty) imgs.add(str);
+      }
+    }
     return Lesson(
       title: json['title']?.toString() ?? 'Untitled',
       guide: json['guide']?.toString() ?? '',
       subunits: subs,
+      images: imgs,
     );
   }
   /// Human‑readable lesson title (for example, `asdf jkl;`).
@@ -28,6 +39,10 @@ class Lesson {
 
   /// HTML guide text introducing the lesson. May contain image tags.
   final String guide;
+
+  /// List of image file names (relative to `assets/img/`) associated with this lesson.
+  /// If multiple images are provided, the first entry is used by default.
+  final List<String> images;
 
   /// Mapping from subunit name (e.g. `Grip`, `Words`) to practice strings.
   final Map<String, String> subunits;

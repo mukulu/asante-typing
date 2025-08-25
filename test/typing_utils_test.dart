@@ -16,7 +16,7 @@ void main() {
 
   group('fingerAssetForUnit', () {
     test('returns correct mapping for early units', () {
-      expect(fingerAssetForUnit(0), equals('assets/img/home-keys-position.jpg'));
+      expect(fingerAssetForUnit(0), equals('assets/img/home-keys-position.png'));
       expect(fingerAssetForUnit(3), equals('assets/img/forefingers.jpg'));
       expect(fingerAssetForUnit(5), equals('assets/img/middlefingers.jpg'));
     });

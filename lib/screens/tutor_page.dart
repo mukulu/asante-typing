@@ -24,6 +24,10 @@ class _TutorPageState extends State<TutorPage> {
   UnitsData? _data;
   int _selectedUnit = 0;
   String? _selectedSubunit;
+  // Remembers the last selected subunit for each unit so that revisiting a unit
+  // restores the previously active lesson. The key is the unit index and the
+  // value is the subunit key.
+  final Map<int, String> _lastSubunitPerUnit = {};
   final TextEditingController _controller = TextEditingController();
   DateTime? _startTime;
   Timer? _ticker;
@@ -48,8 +52,19 @@ class _TutorPageState extends State<TutorPage> {
   Future<void> _loadUnits() async {
     final raw = await rootBundle.loadString('assets/units.json');
     final jsonMap = json.decode(raw) as Map<String, dynamic>;
+    final data = UnitsData.fromJson(jsonMap);
+    // After loading, select the first unit and its first subunit by default.
+    String? initialSub;
+    if (data.main.isNotEmpty) {
+      final firstLesson = data.main[_selectedUnit];
+      if (firstLesson.subunits.isNotEmpty) {
+        initialSub = firstLesson.subunits.keys.first;
+        _lastSubunitPerUnit[_selectedUnit] = initialSub;
+      }
+    }
     setState(() {
-      _data = UnitsData.fromJson(jsonMap);
+      _data = data;
+      _selectedSubunit = initialSub;
     });
   }
 
@@ -133,7 +148,17 @@ class _TutorPageState extends State<TutorPage> {
       );
     }
     final selectedLesson = data.main[_selectedUnit];
-    final fingerAsset = fingerAssetForUnit(_selectedUnit);
+    // Determine which image to display for the selected lesson. Prefer the
+    // first entry in the lesson's `images` list, falling back to the
+    // fingerAssetForUnit helper when none are defined. The stored image path
+    // in the lesson is relative to the project root, e.g. `img/home.jpg`.
+    String? diagramAsset;
+    if (selectedLesson.images.isNotEmpty) {
+      final imgPath = selectedLesson.images.first;
+      diagramAsset = imgPath.startsWith('assets/') ? imgPath : 'assets/$imgPath';
+    } else {
+      diagramAsset = fingerAssetForUnit(_selectedUnit);
+    }
     final elapsed = _startTime == null ? Duration.zero : DateTime.now().difference(_startTime!);
     final typedLen = _controller.text.length;
     final correct = _selectedSubunit == null ? 0 : (_currentText.length - _errors).clamp(0, _currentText.length);
@@ -155,11 +180,22 @@ class _TutorPageState extends State<TutorPage> {
                 return ListTile(
                   dense: true,
                   selected: isSelected,
+                  selectedTileColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  selectedColor: Theme.of(context).colorScheme.primary,
                   title: Text('Unit ${i + 1}: ${data.main[i].title}'),
                   onTap: () {
                     setState(() {
                       _selectedUnit = i;
-                      _selectedSubunit = null;
+                      // Restore last active subunit for this unit if available;
+                      // otherwise default to the first subunit of the lesson.
+                      final lesson = _data!.main[i];
+                      var sub = _lastSubunitPerUnit[i];
+                      if (sub == null || !lesson.subunits.containsKey(sub)) {
+                        sub = lesson.subunits.keys.isNotEmpty ? lesson.subunits.keys.first : null;
+                      }
+                      _selectedSubunit = sub;
+                      // update memory
+                      if (sub != null) _lastSubunitPerUnit[i] = sub;
                       _controller.clear();
                       _startTime = null;
                       _errors = 0;
@@ -183,13 +219,16 @@ class _TutorPageState extends State<TutorPage> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      for (final key in const ['Grip', 'Words', 'Control', 'Sentences', 'Test'])
+                      for (final key in selectedLesson.subunits.keys)
                         ChoiceChip(
                           label: Text(key),
                           selected: _selectedSubunit == key,
-                          onSelected: (_) {
+                          selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                          onSelected: (selected) {
+                            if (!selected) return;
                             setState(() {
                               _selectedSubunit = key;
+                              _lastSubunitPerUnit[_selectedUnit] = key;
                               _controller.clear();
                               _startTime = null;
                               _ticker?.cancel();
@@ -204,10 +243,10 @@ class _TutorPageState extends State<TutorPage> {
                   const SizedBox(height: 12),
                   if (_selectedSubunit == null) ...[
                     // Guide view
-                    if (fingerAsset != null) ...[
+                      if (diagramAsset != null) ...[
                       Center(
-                        child: Image.asset(
-                          fingerAsset,
+                               child: Image.asset(
+                               diagramAsset,
                           height: 150,
                           fit: BoxFit.contain,
                           errorBuilder: (_, __, ___) => const SizedBox(),
@@ -221,10 +260,10 @@ class _TutorPageState extends State<TutorPage> {
                     ),
                   ] else ...[
                     // Practice view
-                    if (fingerAsset != null) ...[
+                    if (diagramAsset != null) ...[
                       Center(
-                        child: Image.asset(
-                          fingerAsset,
+                               child: Image.asset(
+                               diagramAsset,
                           height: 120,
                           fit: BoxFit.contain,
                           errorBuilder: (_, __, ___) => const SizedBox(),

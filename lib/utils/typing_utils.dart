@@ -17,7 +17,7 @@ String? fingerAssetForUnit(int unitIndex) {
   final n = unitIndex + 1;
   String file;
   if (n <= 3) {
-    file = 'home-keys-position.jpg';
+    file = 'home-keys-position.png';
   } else if (n <= 5) {
     file = 'forefingers.jpg';
   } else if (n == 6) {
