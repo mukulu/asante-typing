@@ -1,18 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 import '../models/units.dart';
+import '../utils/typing_utils.dart';
 
-/// A unified tutor page that presents the entire typing tutor within a
-/// single screen.  The page is divided into a left navigation pane
-/// listing all units and a main pane that shows either the guide or
-/// the practice interface.  Selecting a unit or a subunit updates
-/// the state rather than navigating to a new route.  This design
-/// avoids back‑and‑forth transitions between screens and keeps the
-/// layout consistent at all times.
+/// Unified two-pane layout:
+/// - Left: units list (25% width)
+/// - Right: guide or practice view with subunit tabs and real-time stats
 class TutorPage extends StatefulWidget {
   const TutorPage({super.key});
 
@@ -21,290 +17,254 @@ class TutorPage extends StatefulWidget {
 }
 
 class _TutorPageState extends State<TutorPage> {
-  UnitsData? _unitsData;
+  UnitsData? _data;
   int _selectedUnit = 0;
-  String? _selectedSubunit;
-  String _lessonText = '';
+  String? _selectedSubunit; // e.g. 'Grip', 'Words', 'Control', 'Sentences', 'Test'
+
   final TextEditingController _controller = TextEditingController();
   DateTime? _startTime;
+  Timer? _ticker;
   int _errors = 0;
   bool _finished = false;
-  Timer? _ticker;
 
   @override
   void initState() {
     super.initState();
     _loadUnits();
-    _controller.addListener(_onInputChanged);
-  }
-
-  Future<void> _loadUnits() async {
-    final jsonString = await rootBundle.loadString('assets/units.json');
-    final map = json.decode(jsonString) as Map<String, dynamic>;
-    setState(() {
-      _unitsData = UnitsData.fromJson(map);
-    });
+    _controller.addListener(_onChanged);
   }
 
   @override
   void dispose() {
-    _ticker?.cancel();
+    _controller.removeListener(_onChanged);
     _controller.dispose();
+    _ticker?.cancel();
     super.dispose();
   }
 
-  void _selectUnit(int index) {
-    if (index == _selectedUnit) return;
-    setState(() {
-      _selectedUnit = index;
-      _selectedSubunit = null;
-      _resetTypingState();
-    });
+  Future<void> _loadUnits() async {
+    final raw = await rootBundle.loadString('assets/units.json');
+    final jsonMap = json.decode(raw) as Map<String, dynamic>;
+    setState(() => _data = UnitsData.fromJson(jsonMap));
   }
 
-  void _selectSubunit(String name) {
-    if (name == _selectedSubunit) return;
-    setState(() {
-      _selectedSubunit = name;
-      _resetTypingState();
-      // Concatenate the semicolon‑separated phrases into one string.
-      final lesson = _unitsData!.main[_selectedUnit];
-      final raw = lesson.subunits[name] ?? '';
-      final parts = raw
-          .split(';')
-          .map((s) => s.trim())
-          .where((s) => s.isNotEmpty)
-          .toList();
-      _lessonText = parts.join(' ');
-    });
-  }
-
-  void _resetTypingState() {
-    _controller.text = '';
-    _startTime = null;
-    _errors = 0;
-    _finished = false;
-    _lessonText = '';
-    _ticker?.cancel();
-  }
-
-  void _onInputChanged() {
-    if (_unitsData == null || _selectedSubunit == null) return;
+  void _onChanged() {
+    if (_selectedSubunit == null) return; // typing only in practice
     final typed = _controller.text;
-    if (_finished) return;
-    // Start timer on first keystroke.
     if (typed.isNotEmpty && _startTime == null) {
       _startTime = DateTime.now();
       _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (mounted && !_finished) setState(() {});
+        if (!mounted) return;
+        setState(() {});
       });
     }
-    // Count mismatches.
-    int mismatches = 0;
-    for (int i = 0; i < typed.length; i++) {
-      if (i >= _lessonText.length) {
-        mismatches += typed.length - _lessonText.length;
-        break;
+    if (typed.length <= _currentText.length) {
+      _errors = 0;
+      for (int i = 0; i < typed.length; i++) {
+        if (typed[i] != _currentText[i]) _errors++;
       }
-      if (typed[i] != _lessonText[i]) mismatches++;
     }
-    setState(() {
-      _errors = mismatches;
-    });
-    // Completion check.
-    if (typed.length >= _lessonText.length && !_finished) {
+    if (typed.length >= _currentText.length && !_finished) {
       _finished = true;
       _ticker?.cancel();
       _showResultDialog();
     }
+    setState(() {});
   }
 
+  Lesson get _currentLesson => _data!.main[_selectedUnit];
+  String get _currentText => _selectedSubunit == null
+      ? ''
+      : (_currentLesson.subunits[_selectedSubunit] ?? '');
+
   void _showResultDialog() {
-    final typedLength = _controller.text.length;
-    final correctChars = (_lessonText.length - _errors).clamp(0, _lessonText.length);
-    final elapsed = _startTime == null ? Duration.zero : DateTime.now().difference(_startTime!);
-    final minutes = elapsed.inSeconds / 60.0;
-    final wpm = minutes > 0 ? (correctChars / 5.0) / minutes : 0.0;
-    final cpm = minutes > 0 ? (typedLength / minutes) : 0.0;
-    final accuracy = _lessonText.isNotEmpty ? (correctChars / _lessonText.length) * 100.0 : 0.0;
-    final elapsedStr = _formatDuration(elapsed);
+    final elapsed = _startTime == null
+        ? const Duration(seconds: 0)
+        : DateTime.now().difference(_startTime!);
+    final typedLen = _controller.text.length;
+    final correct = (_currentText.length - _errors).clamp(0, _currentText.length);
+    final minutes = elapsed.inMilliseconds / 60000.0;
+    final wpm = minutes > 0 ? (correct / 5.0) / minutes : 0;
+    final cpm = minutes > 0 ? correct / minutes : 0;
+
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Lesson Complete'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Length: ${_lessonText.length}'),
-              Text('Typed: $typedLength'),
-              Text('Errors: $_errors'),
-              Text('WPM: ${wpm.toStringAsFixed(2)}'),
-              Text('CPM: ${cpm.toStringAsFixed(2)}'),
-              Text('Accuracy: ${accuracy.toStringAsFixed(1)}%'),
-              Text('Time: $elapsedStr'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
-            ),
+      builder: (_) => AlertDialog(
+        title: const Text('Session Summary'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Length: ${_currentText.length}'),
+            Text('Typed: $typedLen'),
+            Text('Errors: $_errors'),
+            Text('WPM: ${wpm.toStringAsFixed(1)}'),
+            Text('CPM: ${cpm.toStringAsFixed(0)}'),
+            Text('Accuracy: ${typedLen == 0 ? 0 : ((typedLen - _errors) / typedLen * 100).clamp(0,100).toStringAsFixed(1)}%'),
+            Text('Time: ${formatDuration(elapsed)}'),
           ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                _controller.clear();
+                _startTime = null;
+                _ticker = null;
+                _errors = 0;
+                _finished = false;
+              });
+            },
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
-  }
-
-  String _formatDuration(Duration d) {
-    final total = d.inSeconds;
-    final minutes = total ~/ 60;
-    final seconds = total % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-  }
-
-  /// Determine which finger position diagram to show for the given unit.
-  String? _fingerDiagramForUnit(int unitIndex) {
-    // Mapping based on the QuickQWERTY rebranding commit.  Units beyond
-    // six reuse the allfingers image as a fallback.
-    const images = [
-      'home-keys-position.svg.png',
-      'forefingers.svg.png',
-      'middlefingers.svg.png',
-      'ringfingers.svg.png',
-      'littlefingers.svg.png',
-      'allfingers.svg.png',
-    ];
-    final idx = unitIndex.clamp(0, images.length - 1);
-    final name = images[idx];
-    return 'https://raw.githubusercontent.com/susam/quickqwerty/4f8a121baa0c1ef4df0c867993f684749f8c630e/img/$name';
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_unitsData == null) {
+    final data = _data;
+    if (data == null) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
-    final lessons = _unitsData!.main;
-    final lesson = lessons[_selectedUnit];
-    final subunitNames = lesson.subunits.keys.toList();
-    // Compute metrics for real‑time display.
-    final typedLength = _controller.text.length;
-    final elapsed = _startTime == null ? Duration.zero : DateTime.now().difference(_startTime!);
-    final minutes = elapsed.inSeconds / 60.0;
-    final wpm = minutes > 0 ? ((_lessonText.length - _errors).clamp(0, _lessonText.length) / 5.0) / minutes : 0.0;
-    final cpm = minutes > 0 ? (typedLength / minutes) : 0.0;
-    final elapsedStr = _formatDuration(elapsed);
-    final fingerUrl = _fingerDiagramForUnit(_selectedUnit);
+    final selectedLesson = data.main[_selectedUnit];
+    final fingerAsset = fingerAssetForUnit(_selectedUnit);
+
+    final elapsed = _startTime == null
+        ? const Duration(seconds: 0)
+        : DateTime.now().difference(_startTime!);
+    final typedLen = _controller.text.length;
+    final correct = _selectedSubunit == null
+        ? 0
+        : (_currentText.length - _errors).clamp(0, _currentText.length);
+    final minutes = elapsed.inMilliseconds / 60000.0;
+    final wpm = minutes > 0 ? (correct / 5.0) / minutes : 0;
+    final cpm = minutes > 0 ? correct / minutes : 0;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Asante Typing'),
-      ),
+      appBar: AppBar(title: const Text('Asante Typing')),
       body: Row(
         children: [
-          // Left navigation pane listing units.
-          Container(
-            width: 250,
-            color: Colors.grey.shade200,
-            child: ListView.builder(
-              itemCount: lessons.length,
-              itemBuilder: (context, index) {
-                final selected = index == _selectedUnit;
+          // LEFT NAV - Units
+          SizedBox(
+            width: MediaQuery.of(context).size.width * 0.25,
+            child: ListView.separated(
+              itemCount: data.main.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, i) {
+                final isSelected = i == _selectedUnit;
                 return ListTile(
-                  title: Text('Unit ${index + 1}: ${lessons[index].title}'),
-                  selected: selected,
-                  onTap: () => _selectUnit(index),
+                  dense: true,
+                  selected: isSelected,
+                  title: Text('Unit ${i + 1}: ${data.main[i].title}'),
+                  onTap: () {
+                    setState(() {
+                      _selectedUnit = i;
+                      _selectedSubunit = null;
+                      _controller.clear();
+                      _startTime = null;
+                      _errors = 0;
+                      _finished = false;
+                    });
+                  },
                 );
               },
             ),
           ),
-          // Main pane.
+          const VerticalDivider(width: 1),
+          // RIGHT PANE - Guide or Practice
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Subunit tabs.
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: subunitNames.map((name) {
-                        final selected = name == _selectedSubunit;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8.0),
-                          child: ChoiceChip(
-                            label: Text(name),
-                            selected: selected,
-                            onSelected: (_) => _selectSubunit(name),
-                          ),
-                        );
-                      }).toList(),
-                    ),
+                  // Subunit tabs row
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final key in const ['Grip', 'Words', 'Control', 'Sentences', 'Test'])
+                        ChoiceChip(
+                          label: Text(key),
+                          selected: _selectedSubunit == key,
+                          onSelected: (_) {
+                            setState(() {
+                              _selectedSubunit = key;
+                              _controller.clear();
+                              _startTime = null;
+                              _ticker?.cancel();
+                              _ticker = null;
+                              _errors = 0;
+                              _finished = false;
+                            });
+                          },
+                        ),
+                    ],
                   ),
-                  const SizedBox(height: 12.0),
-                  // Show guide when no subunit selected.
+                  const SizedBox(height: 12),
                   if (_selectedSubunit == null) ...[
-                    // Finger diagram.
-                    if (fingerUrl != null)
-                      Image.network(
-                        fingerUrl,
-                        height: 100,
-                        fit: BoxFit.contain,
-                      ),
-                    const SizedBox(height: 8.0),
-                    // Plain guide text.
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Text(
-                          lesson.guide
-                              .replaceAll(RegExp('<p>'), '\n\n')
-                              .replaceAll(RegExp('<[^>]+>'), '')
-                              .trim(),
-                          style: const TextStyle(fontSize: 16.0),
+                    // Guide view
+                    if (fingerAsset != null) ...[
+                      Center(
+                        child: Image.asset(
+                          fingerAsset,
+                          height: 150,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const SizedBox(),
                         ),
                       ),
+                      const SizedBox(height: 12),
+                    ],
+                    Text(
+                      _stripHtml(selectedLesson.guide),
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ] else ...[
-                    // Practice interface.
-                    if (fingerUrl != null)
-                      Image.network(
-                        fingerUrl,
-                        height: 100,
-                        fit: BoxFit.contain,
+                    // Practice view
+                    if (fingerAsset != null) ...[
+                      Center(
+                        child: Image.asset(
+                          fingerAsset,
+                          height: 120,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const SizedBox(),
+                        ),
                       ),
-                    const SizedBox(height: 8.0),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: _buildTargetText(),
+                      const SizedBox(height: 12),
+                    ],
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: _buildTargetText(_currentText, _controller.text),
                       ),
                     ),
-                    const SizedBox(height: 8.0),
+                    const SizedBox(height: 12),
                     TextField(
                       controller: _controller,
                       autofocus: true,
-                      minLines: 1,
-                      maxLines: 5,
+                      maxLines: null,
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
-                        hintText: 'Start typing here...',
+                        hintText: 'Start typing here…',
                       ),
                     ),
-                    const SizedBox(height: 8.0),
+                    const SizedBox(height: 12),
                     Wrap(
-                      spacing: 16.0,
-                      runSpacing: 8.0,
+                      spacing: 16,
+                      runSpacing: 8,
                       children: [
-                        Text('Length: ${_lessonText.length}'),
-                        Text('Typed: $typedLength'),
+                        Text('Length: ${_currentText.length}'),
+                        Text('Typed: $typedLen'),
                         Text('Errors: $_errors'),
-                        Text('WPM: ${wpm.toStringAsFixed(1)}'),
-                        Text('CPM: ${cpm.toStringAsFixed(1)}'),
-                        Text('Time: $elapsedStr'),
+                        Text('WPM: ${wpm.isFinite ? wpm.toStringAsFixed(1) : '0.0'}'),
+                        Text('CPM: ${cpm.isFinite ? cpm.toStringAsFixed(0) : '0'}'),
+                        Text('Time: ${formatDuration(elapsed)}'),
                       ],
                     ),
                   ],
@@ -317,39 +277,22 @@ class _TutorPageState extends State<TutorPage> {
     );
   }
 
-  /// Build the coloured target text for the practice area.  Typed
-  /// characters are coloured green if correct and red if incorrect.
-  Widget _buildTargetText() {
-    final typed = _controller.text;
-    final List<TextSpan> spans = [];
-    for (int i = 0; i < typed.length && i < _lessonText.length; i++) {
-      final correct = typed[i] == _lessonText[i];
-      spans.add(TextSpan(
-        text: _lessonText[i],
-        style: TextStyle(
-          color: correct ? Colors.green : Colors.red,
-          fontWeight: FontWeight.bold,
-        ),
-      ));
+  String _stripHtml(String html) {
+    return html.replaceAll(RegExp(r'<[^>]+>'), '');
+  }
+
+  Widget _buildTargetText(String target, String typed) {
+    final spans = <TextSpan>[];
+    final len = target.length;
+    for (int i = 0; i < len; i++) {
+      final ch = target[i];
+      final inRange = i < typed.length;
+      final correct = inRange && typed[i] == ch;
+      final color = !inRange
+          ? Colors.grey.shade700
+          : (correct ? Colors.green : Colors.red);
+      spans.add(TextSpan(text: ch, style: TextStyle(color: color)));
     }
-    if (typed.length > _lessonText.length) {
-      final extra = typed.substring(_lessonText.length);
-      spans.add(TextSpan(
-        text: extra,
-        style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-      ));
-    }
-    if (typed.length < _lessonText.length) {
-      spans.add(TextSpan(
-        text: _lessonText.substring(typed.length),
-        style: TextStyle(color: Colors.grey.shade600),
-      ));
-    }
-    return RichText(
-      text: TextSpan(
-        children: spans,
-        style: const TextStyle(fontSize: 20.0, fontFamily: 'monospace'),
-      ),
-    );
+    return RichText(text: TextSpan(style: const TextStyle(fontSize: 16, color: Colors.black), children: spans));
   }
 }

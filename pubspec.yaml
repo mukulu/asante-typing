@@ -1,17 +1,9 @@
-name: typing_tutor_flutter
-description: |
-  A web‑based typing tutor inspired by the Klavaro typing tutor but
-  organised around the lesson structure of the QuickQWERTY project.  
-  This Flutter project consumes the QuickQWERTY unit definitions and
-  presents them in an accessible, responsive user interface suitable
-  for web deployment.  It focuses on correctness, timing metrics
-  and intuitive progression through the curriculum.
-
-publish_to: 'none'
-version: 0.1.0
+name: asante_typing
+description: Asante Typing - unified layout, local image assets, tests, CI
+publish_to: "none"
 
 environment:
-  sdk: ">=2.17.0 <3.0.0"
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
@@ -21,8 +13,16 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  mocktail: ^1.0.0
+  very_good_analysis: ^6.0.0
+  dart_code_metrics: ^5.0.0
+  build_runner: ^2.4.11
+  freezed: ^2.5.0
+  json_serializable: ^6.8.0
+  golden_toolkit: ^0.15.0
 
 flutter:
   uses-material-design: true
   assets:
     - assets/units.json
+    - assets/img/
