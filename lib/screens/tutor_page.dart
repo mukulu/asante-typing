@@ -1,14 +1,19 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
-import '../models/units.dart';
-import '../utils/typing_utils.dart';
+import 'package:asante_typing/models/units.dart';
+import 'package:asante_typing/utils/typing_utils.dart';
 
-/// Unified two-pane layout:
-/// - Left: units list (25% width)
-/// - Right: guide or practice view with subunit tabs and real-time stats
+/// A unified two‑pane layout for the typing tutor.
+///
+/// The left pane lists all available units.  Selecting a unit updates the
+/// right pane, which either shows the unit guide or the practice interface
+/// depending on the chosen subunit.  Real‑time statistics (length, typed
+/// characters, errors, WPM, CPM and elapsed time) are displayed during
+/// practice.
 class TutorPage extends StatefulWidget {
   const TutorPage({super.key});
 
@@ -19,8 +24,7 @@ class TutorPage extends StatefulWidget {
 class _TutorPageState extends State<TutorPage> {
   UnitsData? _data;
   int _selectedUnit = 0;
-  String? _selectedSubunit; // e.g. 'Grip', 'Words', 'Control', 'Sentences', 'Test'
-
+  String? _selectedSubunit;
   final TextEditingController _controller = TextEditingController();
   DateTime? _startTime;
   Timer? _ticker;
@@ -45,11 +49,13 @@ class _TutorPageState extends State<TutorPage> {
   Future<void> _loadUnits() async {
     final raw = await rootBundle.loadString('assets/units.json');
     final jsonMap = json.decode(raw) as Map<String, dynamic>;
-    setState(() => _data = UnitsData.fromJson(jsonMap));
+    setState(() {
+      _data = UnitsData.fromJson(jsonMap);
+    });
   }
 
   void _onChanged() {
-    if (_selectedSubunit == null) return; // typing only in practice
+    if (_selectedSubunit == null) return;
     final typed = _controller.text;
     if (typed.isNotEmpty && _startTime == null) {
       _startTime = DateTime.now();
@@ -73,14 +79,10 @@ class _TutorPageState extends State<TutorPage> {
   }
 
   Lesson get _currentLesson => _data!.main[_selectedUnit];
-  String get _currentText => _selectedSubunit == null
-      ? ''
-      : (_currentLesson.subunits[_selectedSubunit] ?? '');
+  String get _currentText => _selectedSubunit == null ? '' : (_currentLesson.subunits[_selectedSubunit] ?? '');
 
   void _showResultDialog() {
-    final elapsed = _startTime == null
-        ? const Duration(seconds: 0)
-        : DateTime.now().difference(_startTime!);
+    final elapsed = _startTime == null ? Duration.zero : DateTime.now().difference(_startTime!);
     final typedLen = _controller.text.length;
     final correct = (_currentText.length - _errors).clamp(0, _currentText.length);
     final minutes = elapsed.inMilliseconds / 60000.0;
@@ -101,7 +103,7 @@ class _TutorPageState extends State<TutorPage> {
             Text('Errors: $_errors'),
             Text('WPM: ${wpm.toStringAsFixed(1)}'),
             Text('CPM: ${cpm.toStringAsFixed(0)}'),
-            Text('Accuracy: ${typedLen == 0 ? 0 : ((typedLen - _errors) / typedLen * 100).clamp(0,100).toStringAsFixed(1)}%'),
+            Text('Accuracy: ${typedLen == 0 ? 0 : ((typedLen - _errors) / typedLen * 100).clamp(0, 100).toStringAsFixed(1)}%'),
             Text('Time: ${formatDuration(elapsed)}'),
           ],
         ),
@@ -134,14 +136,9 @@ class _TutorPageState extends State<TutorPage> {
     }
     final selectedLesson = data.main[_selectedUnit];
     final fingerAsset = fingerAssetForUnit(_selectedUnit);
-
-    final elapsed = _startTime == null
-        ? const Duration(seconds: 0)
-        : DateTime.now().difference(_startTime!);
+    final elapsed = _startTime == null ? Duration.zero : DateTime.now().difference(_startTime!);
     final typedLen = _controller.text.length;
-    final correct = _selectedSubunit == null
-        ? 0
-        : (_currentText.length - _errors).clamp(0, _currentText.length);
+    final correct = _selectedSubunit == null ? 0 : (_currentText.length - _errors).clamp(0, _currentText.length);
     final minutes = elapsed.inMilliseconds / 60000.0;
     final wpm = minutes > 0 ? (correct / 5.0) / minutes : 0;
     final cpm = minutes > 0 ? correct / minutes : 0;
@@ -150,7 +147,7 @@ class _TutorPageState extends State<TutorPage> {
       appBar: AppBar(title: const Text('Asante Typing')),
       body: Row(
         children: [
-          // LEFT NAV - Units
+          // Left navigation: units list
           SizedBox(
             width: MediaQuery.of(context).size.width * 0.25,
             child: ListView.separated(
@@ -177,14 +174,14 @@ class _TutorPageState extends State<TutorPage> {
             ),
           ),
           const VerticalDivider(width: 1),
-          // RIGHT PANE - Guide or Practice
+          // Right pane: guide or practice
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Subunit tabs row
+                  // Subunit chips
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -277,14 +274,15 @@ class _TutorPageState extends State<TutorPage> {
     );
   }
 
+  /// Strips all HTML tags from a snippet of guide text.
   String _stripHtml(String html) {
-    return html.replaceAll(RegExp(r'<[^>]+>'), '');
+    return html.replaceAll(RegExp('<[^>]+>'), '');
   }
 
+  /// Builds a RichText showing the target string with colour coding.
   Widget _buildTargetText(String target, String typed) {
     final spans = <TextSpan>[];
-    final len = target.length;
-    for (int i = 0; i < len; i++) {
+    for (int i = 0; i < target.length; i++) {
       final ch = target[i];
       final inRange = i < typed.length;
       final correct = inRange && typed[i] == ch;
@@ -293,6 +291,11 @@ class _TutorPageState extends State<TutorPage> {
           : (correct ? Colors.green : Colors.red);
       spans.add(TextSpan(text: ch, style: TextStyle(color: color)));
     }
-    return RichText(text: TextSpan(style: const TextStyle(fontSize: 16, color: Colors.black), children: spans));
+    return RichText(
+      text: TextSpan(
+        style: const TextStyle(fontSize: 16, color: Colors.black),
+        children: spans,
+      ),
+    );
   }
 }

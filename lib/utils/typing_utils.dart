@@ -1,14 +1,26 @@
-/// Utility functions for the typing tutor (pure & testable).
+/// Pure helper functions for formatting durations and mapping units to images.
 
+/// Returns a human‑readable string in mm:ss format for a [Duration].
 String formatDuration(Duration d) {
   final total = d.inSeconds;
-  final mm = (total ~/ 60).toString().padLeft(2, '0');
-  final ss = (total % 60).toString().padLeft(2, '0');
-  return '$mm:$ss';
+  final minutes = (total ~/ 60).toString().padLeft(2, '0');
+  final seconds = (total % 60).toString().padLeft(2, '0');
+  return '$minutes:$seconds';
 }
 
-/// Map unit index (0-based) to an asset path under assets/img/.
-/// Adjust mapping to mirror your curriculum. Defaults to 'allfingers.jpg'.
+/// Maps a 0‑based unit index to an image asset path under `assets/img/`.
+///
+/// The mapping follows the guidance from the QuickQWERTY curriculum:
+///  - Units 1–3 use the home keys diagram.
+///  - Units 4–5 emphasise forefingers.
+///  - Unit 6 uses the middle fingers.
+///  - Unit 7 uses the ring fingers.
+///  - Unit 8 uses the little fingers.
+///  - Unit 9 shows left‑hand fingers.
+///  - Unit 10 shows right‑hand fingers.
+///  - Unit 11 shows little and forefingers.
+///  - Units 12–21 show the full keyboard (QWERTY image).
+///  - Units 22–28 show all fingers (special characters and numbers).
 String? fingerAssetForUnit(int unitIndex) {
   final n = unitIndex + 1;
   String file;
@@ -31,7 +43,7 @@ String? fingerAssetForUnit(int unitIndex) {
   } else if (n <= 21) {
     file = 'qwerty.jpg';
   } else {
-    file = 'allfingers.jpg'; // units 22–28: special characters etc.
+    file = 'allfingers.jpg';
   }
   return 'assets/img/$file';
 }
