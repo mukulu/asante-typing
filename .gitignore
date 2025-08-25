@@ -1,0 +1,55 @@
+# Flutter/Dart build outputs
+.dart_tool/
+.packages
+.pub/
+build/
+coverage/
+
+# IntelliJ / Android Studio / VSCode
+.idea/
+.vscode/
+*.iml
+
+# iOS
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/.symlinks/
+ios/Pods/
+ios/Podfile.lock
+ios/Runner.xcworkspace/
+ios/Flutter/Generated.xcconfig
+ios/Flutter/GeneratedPluginRegistrant.*
+
+# Android
+android/.gradle/
+android/app/build/
+android/local.properties
+android/gradle.properties
+android/gradlew*
+android/gradle-wrapper.jar
+
+# Web
+web/.dart_tool/
+web/build/
+
+# Windows
+windows/.dart_tool/
+windows/build/
+
+# macOS
+macos/.dart_tool/
+macos/build/
+
+# Linux
+linux/.dart_tool/
+linux/build/
+
+# Common system files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Environment / secret files
+.env
