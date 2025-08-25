@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math' as math;
 
 import 'package:asante_typing/models/units.dart';
 import 'package:asante_typing/utils/typing_utils.dart';
@@ -12,11 +11,11 @@ const kColorYellow = Color(0xFFF4B233);
 const kColorGreen = Color(0xFF1F5F45);
 const kColorRed = Color(0xFF7A1717);
 
-/// A unified two‑pane layout for the typing tutor.
+/// A unified two-pane layout for the typing tutor.
 ///
-/// The left pane lists all available units.  Selecting a unit updates the
+/// The left pane lists all available units. Selecting a unit updates the
 /// right pane, which either shows the unit guide or the practice interface
-/// depending on the chosen subunit.  Real‑time statistics (length, typed
+/// depending on the chosen subunit. Real-time statistics (length, typed
 /// characters, errors, WPM, CPM and elapsed time) are displayed during
 /// practice.
 class TutorPage extends StatefulWidget {
@@ -26,11 +25,11 @@ class TutorPage extends StatefulWidget {
   State<TutorPage> createState() => _TutorPageState();
 }
 
-
 class _TutorPageState extends State<TutorPage> {
   UnitsData? _data;
   int _selectedUnit = 0;
   String? _selectedSubunit;
+
   // Remembers the last selected subunit for each unit so that revisiting a unit
   // restores the previously active lesson. The key is the unit index and the
   // value is the subunit key.
@@ -41,9 +40,7 @@ class _TutorPageState extends State<TutorPage> {
   int _errors = 0;
   bool _finished = false;
 
-  // Session summary metrics. When a session (i.e. a subunit practice) is
-  // completed, these values are populated and `_sessionCompleted` is set to
-  // true.  They are cleared whenever a new lesson or subunit is selected.
+  // Session summary metrics for a completed practice.
   bool _sessionCompleted = false;
   Duration _sessionDuration = Duration.zero;
   int _sessionTyped = 0;
@@ -61,8 +58,9 @@ class _TutorPageState extends State<TutorPage> {
 
   @override
   void dispose() {
-    _controller..removeListener(_onChanged)
-    ..dispose();
+    _controller
+      ..removeListener(_onChanged)
+      ..dispose();
     _ticker?.cancel();
     super.dispose();
   }
@@ -71,6 +69,7 @@ class _TutorPageState extends State<TutorPage> {
     final raw = await rootBundle.loadString('assets/units.json');
     final jsonMap = json.decode(raw) as Map<String, dynamic>;
     final data = UnitsData.fromJson(jsonMap);
+
     // After loading, select the first unit and its first subunit by default.
     String? initialSub;
     if (data.main.isNotEmpty) {
@@ -80,6 +79,7 @@ class _TutorPageState extends State<TutorPage> {
         _lastSubunitPerUnit[_selectedUnit] = initialSub;
       }
     }
+
     setState(() {
       _data = data;
       _selectedSubunit = initialSub;
@@ -88,7 +88,9 @@ class _TutorPageState extends State<TutorPage> {
 
   void _onChanged() {
     if (_selectedSubunit == null) return;
+
     final typed = _controller.text;
+
     if (typed.isNotEmpty && _startTime == null) {
       _startTime = DateTime.now();
       _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -96,22 +98,32 @@ class _TutorPageState extends State<TutorPage> {
         setState(() {});
       });
     }
+
     if (typed.length <= _currentText.length) {
       _errors = 0;
       for (var i = 0; i < typed.length; i++) {
         if (typed[i] != _currentText[i]) _errors++;
       }
     }
+
     if (typed.length >= _currentText.length && !_finished) {
       _finished = true;
       _ticker?.cancel();
+
       // Compute session metrics when practice completes.
-      final elapsed = _startTime == null ? Duration.zero : DateTime.now().difference(_startTime!);
-      final correct = (_currentText.length - _errors).clamp(0, _currentText.length);
+      final elapsed =
+          _startTime == null ? Duration.zero : DateTime.now().difference(_startTime!);
+      final correct =
+          (_currentText.length - _errors).clamp(0, _currentText.length);
       final minutes = elapsed.inMilliseconds / 60000.0;
       final wpm = minutes > 0 ? (correct / 5.0) / minutes : 0.0;
       final cpm = minutes > 0 ? correct / minutes : 0.0;
-      final accuracy = typed.isNotEmpty ? ((typed.length - _errors) / typed.length * 100).clamp(0, 100) : 0.0;
+      final accuracy = typed.isNotEmpty
+          ? (((typed.length - _errors) / typed.length * 100)
+                  .clamp(0.0, 100.0))
+              
+          : 0.0;
+
       setState(() {
         _sessionCompleted = true;
         _sessionDuration = elapsed;
@@ -122,12 +134,22 @@ class _TutorPageState extends State<TutorPage> {
         _sessionAccuracy = accuracy;
       });
     }
+
     setState(() {});
   }
 
   Lesson get _currentLesson => _data!.main[_selectedUnit];
-  String get _currentText => _selectedSubunit == null ? '' : (_currentLesson.subunits[_selectedSubunit] ?? '');
 
+  String get _currentText =>
+      _selectedSubunit == null ? '' : (_currentLesson.subunits[_selectedSubunit] ?? '');
+
+  String get _dynamicTitle {
+    if (_data == null) return 'Asante Typing';
+    final unitNo = _selectedUnit + 1;
+    final title = _currentLesson.title;
+    final sub = _selectedSubunit;
+    return sub == null ? 'Unit $unitNo: $title' : 'Unit $unitNo: $title – $sub';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -137,11 +159,10 @@ class _TutorPageState extends State<TutorPage> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
+
     final selectedLesson = data.main[_selectedUnit];
-    // Determine which image to display for the selected lesson. Prefer the
-    // first entry in the lesson's `images` list, falling back to the
-    // fingerAssetForUnit helper when none are defined. The stored image path
-    // in the lesson is relative to the project root, e.g. `img/home.jpg`.
+
+    // Determine which image to display for the selected lesson.
     String? diagramAsset;
     if (selectedLesson.images.isNotEmpty) {
       final imgPath = selectedLesson.images.first;
@@ -149,15 +170,19 @@ class _TutorPageState extends State<TutorPage> {
     } else {
       diagramAsset = fingerAssetForUnit(_selectedUnit);
     }
-    final elapsed = _startTime == null ? Duration.zero : DateTime.now().difference(_startTime!);
+
+    final elapsed =
+        _startTime == null ? Duration.zero : DateTime.now().difference(_startTime!);
     final typedLen = _controller.text.length;
-    final correct = _selectedSubunit == null ? 0 : (_currentText.length - _errors).clamp(0, _currentText.length);
+    final correct =
+        _selectedSubunit == null ? 0 : (_currentText.length - _errors).clamp(0, _currentText.length);
     final minutes = elapsed.inMilliseconds / 60000.0;
-    final wpm = minutes > 0 ? (correct / 5.0) / minutes : 0;
-    final cpm = minutes > 0 ? correct / minutes : 0;
+    final wpm = minutes > 0 ? (correct / 5.0) / minutes : 0.0;
+    final cpm = minutes > 0 ? correct / minutes : 0.0;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(dynamicTitle),
+        title: Text(_dynamicTitle),
         backgroundColor: kColorGreen,
         foregroundColor: kColorRed,
         centerTitle: true,
@@ -170,7 +195,8 @@ class _TutorPageState extends State<TutorPage> {
             width: MediaQuery.of(context).size.width * 0.25,
             child: ListView.separated(
               itemCount: data.main.length,
-              separatorBuilder: (_, __) => const Divider(height: 1, color: Colors.white),
+              separatorBuilder: (_, __) =>
+                  const Divider(height: 1, color: Colors.white),
               itemBuilder: (context, i) {
                 final isSelected = i == _selectedUnit;
                 return ListTile(
@@ -183,16 +209,19 @@ class _TutorPageState extends State<TutorPage> {
                   onTap: () {
                     setState(() {
                       _selectedUnit = i;
-                      // Restore last active subunit for this unit if available;
-                      // otherwise default to the first subunit of the lesson.
+
+                      // Restore last active subunit or default to first one.
                       final lesson = _data!.main[i];
                       var sub = _lastSubunitPerUnit[i];
                       if (sub == null || !lesson.subunits.containsKey(sub)) {
-                        sub = lesson.subunits.keys.isNotEmpty ? lesson.subunits.keys.first : null;
+                        sub = lesson.subunits.keys.isNotEmpty
+                            ? lesson.subunits.keys.first
+                            : null;
                       }
                       _selectedSubunit = sub;
-                      // update memory
                       if (sub != null) _lastSubunitPerUnit[i] = sub;
+
+                      // Reset session state.
                       _controller.clear();
                       _startTime = null;
                       _ticker?.cancel();
@@ -207,14 +236,14 @@ class _TutorPageState extends State<TutorPage> {
             ),
           ),
           const VerticalDivider(width: 1),
-          // Right pane: guide or practice
+          // Right pane: guide + practice
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Subunit chips
+                  // Subunit chips (no arbitrary limit; renders all)
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -229,6 +258,8 @@ class _TutorPageState extends State<TutorPage> {
                             setState(() {
                               _selectedSubunit = key;
                               _lastSubunitPerUnit[_selectedUnit] = key;
+
+                              // Reset state for new subunit.
                               _controller.clear();
                               _startTime = null;
                               _ticker?.cancel();
@@ -242,7 +273,8 @@ class _TutorPageState extends State<TutorPage> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  // Always display guide and image for clarity, regardless of practice mode.
+
+                  // Guide image (if any)
                   if (diagramAsset != null) ...[
                     Center(
                       child: Image.asset(
@@ -254,13 +286,19 @@ class _TutorPageState extends State<TutorPage> {
                     ),
                     const SizedBox(height: 8),
                   ],
+
+                  // Guide text (always present under image for clarity)
                   Text(
                     _stripHtml(selectedLesson.guide),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: kColorRed),
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: kColorRed),
                   ),
                   const SizedBox(height: 12),
+
                   if (_selectedSubunit == null) ...[
-                    // Guide-only view: no practice fields.
+                    // Guide-only view
                   ] else ...[
                     // Practice view
                     Card(
@@ -281,21 +319,25 @@ class _TutorPageState extends State<TutorPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Real-time metrics with simple visualizations
+
+                    // Real-time metrics with visualizations
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Progress bar for typed vs total length
                         const Text('Progress', style: TextStyle(color: kColorRed)),
                         const SizedBox(height: 4),
                         LinearProgressIndicator(
-                          value: _currentText.isNotEmpty ? (typedLen / _currentText.length).clamp(0.0, 1.0) : 0.0,
+                          value: _currentText.isNotEmpty
+                              ? (typedLen / _currentText.length)
+                                  .clamp(0.0, 1.0)
+                                  
+                              : 0.0,
                           minHeight: 8,
                           backgroundColor: Colors.grey.shade300,
-                          valueColor: const AlwaysStoppedAnimation<Color>(kColorGreen),
+                          valueColor:
+                              const AlwaysStoppedAnimation<Color>(kColorGreen),
                         ),
                         const SizedBox(height: 8),
-                        // Gauges for WPM and CPM
                         Row(
                           children: [
                             _buildGauge('WPM', wpm, 60),
@@ -308,15 +350,25 @@ class _TutorPageState extends State<TutorPage> {
                           spacing: 16,
                           runSpacing: 8,
                           children: [
-                            Text('Length: ${_currentText.length}', style: const TextStyle(color: kColorRed)),
-                            Text('Typed: $typedLen', style: const TextStyle(color: kColorRed)),
-                            Text('Errors: $_errors', style: const TextStyle(color: kColorRed)),
-                            Text('Time: ${formatDuration(elapsed)}', style: const TextStyle(color: kColorRed)),
+                            const Text('Length:', style: TextStyle(color: kColorRed)),
+                            Text('${_currentText.length}',
+                                style: const TextStyle(color: kColorRed),),
+                            const Text('Typed:', style: TextStyle(color: kColorRed)),
+                            Text('$typedLen',
+                                style: const TextStyle(color: kColorRed),),
+                            const Text('Errors:', style: TextStyle(color: kColorRed)),
+                            Text('$_errors',
+                                style: const TextStyle(color: kColorRed),),
+                            const Text('Time:', style: TextStyle(color: kColorRed)),
+                            Text(formatDuration(elapsed),
+                                style: const TextStyle(color: kColorRed),),
                           ],
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
+
+                    // Final session summary (no dialog)
                     if (_sessionCompleted) ...[
                       Card(
                         color: kColorGreen.withValues(alpha: 0.1),
@@ -325,9 +377,14 @@ class _TutorPageState extends State<TutorPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Session Summary', style: TextStyle(fontWeight: FontWeight.bold, color: kColorRed)),
+                              const Text(
+                                'Session Summary',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: kColorRed,
+                                ),
+                              ),
                               const SizedBox(height: 8),
-                              // Final gauges
                               Row(
                                 children: [
                                   _buildGauge('WPM', _sessionWpm, 60),
@@ -337,21 +394,37 @@ class _TutorPageState extends State<TutorPage> {
                               ),
                               const SizedBox(height: 8),
                               LinearProgressIndicator(
-                                value: _currentText.isNotEmpty ? (_sessionTyped / _currentText.length).clamp(0.0, 1.0) : 0.0,
+                                value: _currentText.isNotEmpty
+                                    ? (_sessionTyped / _currentText.length)
+                                        .clamp(0.0, 1.0)
+                                        
+                                    : 0.0,
                                 minHeight: 8,
                                 backgroundColor: Colors.grey.shade300,
-                                valueColor: const AlwaysStoppedAnimation<Color>(kColorGreen),
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                    kColorGreen,),
                               ),
                               const SizedBox(height: 8),
                               Wrap(
                                 spacing: 16,
                                 runSpacing: 8,
                                 children: [
-                                  Text('Length: ${_currentText.length}', style: const TextStyle(color: kColorRed)),
-                                  Text('Typed: $_sessionTyped', style: const TextStyle(color: kColorRed)),
-                                  Text('Errors: $_sessionErrorsFinal', style: const TextStyle(color: kColorRed)),
-                                  Text('Accuracy: ${_sessionAccuracy.toStringAsFixed(1)}%', style: const TextStyle(color: kColorRed)),
-                                  Text('Time: ${formatDuration(_sessionDuration)}', style: const TextStyle(color: kColorRed)),
+                                  Text('Length: ${_currentText.length}',
+                                      style:
+                                          const TextStyle(color: kColorRed),),
+                                  Text('Typed: $_sessionTyped',
+                                      style:
+                                          const TextStyle(color: kColorRed),),
+                                  Text('Errors: $_sessionErrorsFinal',
+                                      style:
+                                          const TextStyle(color: kColorRed),),
+                                  Text(
+                                      'Accuracy: ${_sessionAccuracy.toStringAsFixed(1)}%',
+                                      style:
+                                          const TextStyle(color: kColorRed),),
+                                  Text('Time: ${formatDuration(_sessionDuration)}',
+                                      style:
+                                          const TextStyle(color: kColorRed),),
                                 ],
                               ),
                             ],
@@ -366,7 +439,18 @@ class _TutorPageState extends State<TutorPage> {
           ),
         ],
       ),
-      )
+      bottomNavigationBar: Container(
+        color: kColorGreen,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: const Center(
+          child: Text(
+            'Asante Typing Tutor © John Francis Mukulu SJ 2025 - mukulu.org',
+            style: TextStyle(color: kColorRed),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    );
   }
 
   /// Strips all HTML tags from the [html] string.
@@ -381,9 +465,8 @@ class _TutorPageState extends State<TutorPage> {
       final ch = target[i];
       final inRange = i < typed.length;
       final correct = inRange && typed[i] == ch;
-      final color = !inRange
-          ? Colors.grey.shade700
-          : (correct ? Colors.green : Colors.red);
+      final color =
+          !inRange ? Colors.grey.shade700 : (correct ? Colors.green : Colors.red);
       spans.add(TextSpan(text: ch, style: TextStyle(color: color)));
     }
     return RichText(
@@ -391,6 +474,51 @@ class _TutorPageState extends State<TutorPage> {
         style: const TextStyle(fontSize: 16, color: Colors.black),
         children: spans,
       ),
+    );
+  }
+
+  /// Simple circular gauge for WPM/CPM.
+  Widget _buildGauge(String label, double value, double max) {
+    final ratio =
+        (max <= 0 ? 0.0 : (value / max)).clamp(0.0, 1.0);
+    final display = value.isFinite ? value.toStringAsFixed(0) : '0';
+
+    return Column(
+      children: [
+        SizedBox(
+          width: 84,
+          height: 84,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CircularProgressIndicator(
+                value: ratio,
+                strokeWidth: 6,
+                backgroundColor: Colors.grey.shade300,
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(kColorGreen),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    display,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: kColorRed,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    label,
+                    style: const TextStyle(fontSize: 12, color: kColorRed),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
