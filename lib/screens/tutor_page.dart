@@ -1,10 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:asante_typing/models/units.dart';
 import 'package:asante_typing/utils/typing_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+
+/// Colour palette used across the tutor.
+const kColorYellow = Color(0xFFF4B233);
+const kColorGreen = Color(0xFF1F5F45);
+const kColorRed = Color(0xFF7A1717);
 
 /// A unified two‑pane layout for the typing tutor.
 ///
@@ -20,6 +26,7 @@ class TutorPage extends StatefulWidget {
   State<TutorPage> createState() => _TutorPageState();
 }
 
+
 class _TutorPageState extends State<TutorPage> {
   UnitsData? _data;
   int _selectedUnit = 0;
@@ -33,6 +40,17 @@ class _TutorPageState extends State<TutorPage> {
   Timer? _ticker;
   int _errors = 0;
   bool _finished = false;
+
+  // Session summary metrics. When a session (i.e. a subunit practice) is
+  // completed, these values are populated and `_sessionCompleted` is set to
+  // true.  They are cleared whenever a new lesson or subunit is selected.
+  bool _sessionCompleted = false;
+  Duration _sessionDuration = Duration.zero;
+  int _sessionTyped = 0;
+  int _sessionErrorsFinal = 0;
+  double _sessionWpm = 0;
+  double _sessionCpm = 0;
+  double _sessionAccuracy = 0;
 
   @override
   void initState() {
@@ -87,7 +105,22 @@ class _TutorPageState extends State<TutorPage> {
     if (typed.length >= _currentText.length && !_finished) {
       _finished = true;
       _ticker?.cancel();
-      _showResultDialog();
+      // Compute session metrics when practice completes.
+      final elapsed = _startTime == null ? Duration.zero : DateTime.now().difference(_startTime!);
+      final correct = (_currentText.length - _errors).clamp(0, _currentText.length);
+      final minutes = elapsed.inMilliseconds / 60000.0;
+      final wpm = minutes > 0 ? (correct / 5.0) / minutes : 0.0;
+      final cpm = minutes > 0 ? correct / minutes : 0.0;
+      final accuracy = typed.isNotEmpty ? ((typed.length - _errors) / typed.length * 100).clamp(0, 100) : 0.0;
+      setState(() {
+        _sessionCompleted = true;
+        _sessionDuration = elapsed;
+        _sessionTyped = typed.length;
+        _sessionErrorsFinal = _errors;
+        _sessionWpm = wpm;
+        _sessionCpm = cpm;
+        _sessionAccuracy = accuracy;
+      });
     }
     setState(() {});
   }
@@ -95,49 +128,6 @@ class _TutorPageState extends State<TutorPage> {
   Lesson get _currentLesson => _data!.main[_selectedUnit];
   String get _currentText => _selectedSubunit == null ? '' : (_currentLesson.subunits[_selectedSubunit] ?? '');
 
-  void _showResultDialog() {
-    final elapsed = _startTime == null ? Duration.zero : DateTime.now().difference(_startTime!);
-    final typedLen = _controller.text.length;
-    final correct = (_currentText.length - _errors).clamp(0, _currentText.length);
-    final minutes = elapsed.inMilliseconds / 60000.0;
-    final wpm = minutes > 0 ? (correct / 5.0) / minutes : 0;
-    final cpm = minutes > 0 ? correct / minutes : 0;
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        title: const Text('Session Summary'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Length: ${_currentText.length}'),
-            Text('Typed: $typedLen'),
-            Text('Errors: $_errors'),
-            Text('WPM: ${wpm.toStringAsFixed(1)}'),
-            Text('CPM: ${cpm.toStringAsFixed(0)}'),
-            Text('Accuracy: ${typedLen == 0 ? 0 : ((typedLen - _errors) / typedLen * 100).clamp(0, 100).toStringAsFixed(1)}%'),
-            Text('Time: ${formatDuration(elapsed)}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() {
-                _controller.clear();
-                _startTime = null;
-                _ticker = null;
-                _errors = 0;
-                _finished = false;
-              });
-            },
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -166,22 +156,29 @@ class _TutorPageState extends State<TutorPage> {
     final wpm = minutes > 0 ? (correct / 5.0) / minutes : 0;
     final cpm = minutes > 0 ? correct / minutes : 0;
     return Scaffold(
-      appBar: AppBar(title: const Text('Asante Typing')),
+      appBar: AppBar(
+        title: Text(dynamicTitle),
+        backgroundColor: kColorGreen,
+        foregroundColor: kColorRed,
+        centerTitle: true,
+      ),
       body: Row(
         children: [
           // Left navigation: units list
-          SizedBox(
+          Container(
+            color: kColorYellow,
             width: MediaQuery.of(context).size.width * 0.25,
             child: ListView.separated(
               itemCount: data.main.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
+              separatorBuilder: (_, __) => const Divider(height: 1, color: Colors.white),
               itemBuilder: (context, i) {
                 final isSelected = i == _selectedUnit;
                 return ListTile(
                   dense: true,
                   selected: isSelected,
-                  selectedTileColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                  selectedColor: Theme.of(context).colorScheme.primary,
+                  selectedTileColor: kColorGreen.withValues(alpha: 0.15),
+                  selectedColor: kColorRed,
+                  textColor: kColorRed,
                   title: Text('Unit ${i + 1}: ${data.main[i].title}'),
                   onTap: () {
                     setState(() {
@@ -198,8 +195,11 @@ class _TutorPageState extends State<TutorPage> {
                       if (sub != null) _lastSubunitPerUnit[i] = sub;
                       _controller.clear();
                       _startTime = null;
+                      _ticker?.cancel();
+                      _ticker = null;
                       _errors = 0;
                       _finished = false;
+                      _sessionCompleted = false;
                     });
                   },
                 );
@@ -223,7 +223,7 @@ class _TutorPageState extends State<TutorPage> {
                         ChoiceChip(
                           label: Text(key),
                           selected: _selectedSubunit == key,
-                          selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                          selectedColor: kColorGreen.withValues(alpha: 0.2),
                           onSelected: (selected) {
                             if (!selected) return;
                             setState(() {
@@ -235,43 +235,36 @@ class _TutorPageState extends State<TutorPage> {
                               _ticker = null;
                               _errors = 0;
                               _finished = false;
+                              _sessionCompleted = false;
                             });
                           },
                         ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  if (_selectedSubunit == null) ...[
-                    // Guide view
-                      if (diagramAsset != null) ...[
-                      Center(
-                               child: Image.asset(
-                               diagramAsset,
-                          height: 150,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const SizedBox(),
-                        ),
+                  // Always display guide and image for clarity, regardless of practice mode.
+                  if (diagramAsset != null) ...[
+                    Center(
+                      child: Image.asset(
+                        diagramAsset,
+                        height: _selectedSubunit == null ? 150 : 120,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const SizedBox(),
                       ),
-                      const SizedBox(height: 12),
-                    ],
-                    Text(
-                      _stripHtml(selectedLesson.guide),
-                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
+                    const SizedBox(height: 8),
+                  ],
+                  Text(
+                    _stripHtml(selectedLesson.guide),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: kColorRed),
+                  ),
+                  const SizedBox(height: 12),
+                  if (_selectedSubunit == null) ...[
+                    // Guide-only view: no practice fields.
                   ] else ...[
                     // Practice view
-                    if (diagramAsset != null) ...[
-                      Center(
-                               child: Image.asset(
-                               diagramAsset,
-                          height: 120,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const SizedBox(),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
                     Card(
+                      elevation: 2,
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: _buildTargetText(_currentText, _controller.text),
@@ -287,19 +280,85 @@ class _TutorPageState extends State<TutorPage> {
                         hintText: 'Start typing here…',
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 16,
-                      runSpacing: 8,
+                    const SizedBox(height: 16),
+                    // Real-time metrics with simple visualizations
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Length: ${_currentText.length}'),
-                        Text('Typed: $typedLen'),
-                        Text('Errors: $_errors'),
-                        Text('WPM: ${wpm.isFinite ? wpm.toStringAsFixed(1) : '0.0'}'),
-                        Text('CPM: ${cpm.isFinite ? cpm.toStringAsFixed(0) : '0'}'),
-                        Text('Time: ${formatDuration(elapsed)}'),
+                        // Progress bar for typed vs total length
+                        const Text('Progress', style: TextStyle(color: kColorRed)),
+                        const SizedBox(height: 4),
+                        LinearProgressIndicator(
+                          value: _currentText.isNotEmpty ? (typedLen / _currentText.length).clamp(0.0, 1.0) : 0.0,
+                          minHeight: 8,
+                          backgroundColor: Colors.grey.shade300,
+                          valueColor: const AlwaysStoppedAnimation<Color>(kColorGreen),
+                        ),
+                        const SizedBox(height: 8),
+                        // Gauges for WPM and CPM
+                        Row(
+                          children: [
+                            _buildGauge('WPM', wpm, 60),
+                            const SizedBox(width: 24),
+                            _buildGauge('CPM', cpm, 300),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 16,
+                          runSpacing: 8,
+                          children: [
+                            Text('Length: ${_currentText.length}', style: const TextStyle(color: kColorRed)),
+                            Text('Typed: $typedLen', style: const TextStyle(color: kColorRed)),
+                            Text('Errors: $_errors', style: const TextStyle(color: kColorRed)),
+                            Text('Time: ${formatDuration(elapsed)}', style: const TextStyle(color: kColorRed)),
+                          ],
+                        ),
                       ],
                     ),
+                    const SizedBox(height: 16),
+                    if (_sessionCompleted) ...[
+                      Card(
+                        color: kColorGreen.withValues(alpha: 0.1),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Session Summary', style: TextStyle(fontWeight: FontWeight.bold, color: kColorRed)),
+                              const SizedBox(height: 8),
+                              // Final gauges
+                              Row(
+                                children: [
+                                  _buildGauge('WPM', _sessionWpm, 60),
+                                  const SizedBox(width: 24),
+                                  _buildGauge('CPM', _sessionCpm, 300),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              LinearProgressIndicator(
+                                value: _currentText.isNotEmpty ? (_sessionTyped / _currentText.length).clamp(0.0, 1.0) : 0.0,
+                                minHeight: 8,
+                                backgroundColor: Colors.grey.shade300,
+                                valueColor: const AlwaysStoppedAnimation<Color>(kColorGreen),
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 16,
+                                runSpacing: 8,
+                                children: [
+                                  Text('Length: ${_currentText.length}', style: const TextStyle(color: kColorRed)),
+                                  Text('Typed: $_sessionTyped', style: const TextStyle(color: kColorRed)),
+                                  Text('Errors: $_sessionErrorsFinal', style: const TextStyle(color: kColorRed)),
+                                  Text('Accuracy: ${_sessionAccuracy.toStringAsFixed(1)}%', style: const TextStyle(color: kColorRed)),
+                                  Text('Time: ${formatDuration(_sessionDuration)}', style: const TextStyle(color: kColorRed)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ],
               ),
@@ -307,7 +366,7 @@ class _TutorPageState extends State<TutorPage> {
           ),
         ],
       ),
-    );
+      )
   }
 
   /// Strips all HTML tags from the [html] string.
