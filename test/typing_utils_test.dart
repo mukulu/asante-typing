@@ -6,11 +6,9 @@ void main() {
     test('formats zero duration', () {
       expect(formatDuration(Duration.zero), equals('00:00'));
     });
-
     test('formats single digit seconds', () {
       expect(formatDuration(const Duration(seconds: 5)), equals('00:05'));
     });
-
     test('formats minutes and seconds', () {
       expect(formatDuration(const Duration(minutes: 2, seconds: 3)), equals('02:03'));
     });
@@ -22,11 +20,9 @@ void main() {
       expect(fingerAssetForUnit(3), equals('assets/img/forefingers.jpg'));
       expect(fingerAssetForUnit(5), equals('assets/img/middlefingers.jpg'));
     });
-
     test('returns qwerty for mid units', () {
       expect(fingerAssetForUnit(11), equals('assets/img/qwerty.jpg'));
     });
-
     test('returns allfingers for late units', () {
       expect(fingerAssetForUnit(25), equals('assets/img/allfingers.jpg'));
     });

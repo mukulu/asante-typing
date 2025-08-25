@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:asante_typing/screens/tutor_page.dart';
+import 'package:flutter/material.dart';
 
 /// Entry point for the Asante Typing application.
 void main() {

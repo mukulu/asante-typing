@@ -1,23 +1,24 @@
-/// Data models representing lessons and units in the typing tutor.
+// Data models representing lessons and units in the typing tutor.
 
+/// Represents a single lesson (unit) with a title, guide text and subunits.
 class Lesson {
-  /// Constructs a lesson with a title, guide, and a map of subunit texts.
+
+  /// Constructs a [Lesson] instance.
   Lesson({
     required this.title,
     required this.guide,
     required this.subunits,
   });
-
-  /// Human‑readable lesson title (e.g. "asdf jkl;").
+  /// Human‑readable lesson title (for example, `asdf jkl;`).
   final String title;
 
-  /// HTML guide text that introduces the lesson and may include images.
+  /// HTML guide text introducing the lesson. May contain image tags.
   final String guide;
 
-  /// Mapping from subunit name (e.g. "Grip") to the text to practise.
+  /// Mapping from subunit name (e.g. `Grip`, `Words`) to practice strings.
   final Map<String, String> subunits;
 
-  /// Factory constructor to build a Lesson from a JSON map.
+  /// Creates a [Lesson] from a JSON map.
   factory Lesson.fromJson(Map<String, dynamic> json) {
     final rawSubs = json['subunits'] as Map<String, dynamic>? ?? <String, dynamic>{};
     final subs = <String, String>{};
@@ -32,17 +33,19 @@ class Lesson {
   }
 }
 
-/// Container for the unit data loaded from JSON.
+/// Container for the collection of units. Contains the primary [main] list and
+/// an optional [alt] list for alternate layouts or number‑key lessons.
 class UnitsData {
-  UnitsData({required this.main, this.alt});
-
-  /// The primary list of lessons (units 1–28).
+  /// Primary list of lessons (units 1–28).
   final List<Lesson> main;
 
-  /// Optional alternate lessons (e.g. number split style). May be null.
+  /// Optional alternate lessons (e.g. number split style).
   final List<Lesson>? alt;
 
-  /// Creates a UnitsData instance from a JSON map.
+  /// Constructs a [UnitsData] instance.
+  UnitsData({required this.main, this.alt});
+
+  /// Creates [UnitsData] from JSON.
   factory UnitsData.fromJson(Map<String, dynamic> json) {
     final mains = (json['main'] as List<dynamic>? ?? <dynamic>[])
         .map((e) => Lesson.fromJson(e as Map<String, dynamic>))

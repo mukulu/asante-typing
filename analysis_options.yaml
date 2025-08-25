@@ -2,7 +2,7 @@ include: package:very_good_analysis/analysis_options.yaml
 
 linter:
   rules:
-    # Disable a few rules temporarily to reduce noise. Re‑enable and
-    # address violations incrementally.
+    # Disable documentation and line length to reduce noise. Re‑enable as the
+    # codebase matures.
     public_member_api_docs: false
     lines_longer_than_80_chars: false

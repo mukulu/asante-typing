@@ -1,4 +1,4 @@
-/// Pure helper functions for formatting durations and mapping units to images.
+// Utility functions for formatting durations and selecting finger diagrams.
 
 /// Returns a human‑readable string in mm:ss format for a [Duration].
 String formatDuration(Duration d) {
@@ -8,19 +8,11 @@ String formatDuration(Duration d) {
   return '$minutes:$seconds';
 }
 
-/// Maps a 0‑based unit index to an image asset path under `assets/img/`.
+/// Maps a 0‑based unit index to an asset path under `assets/img/` for finger diagrams.
 ///
-/// The mapping follows the guidance from the QuickQWERTY curriculum:
-///  - Units 1–3 use the home keys diagram.
-///  - Units 4–5 emphasise forefingers.
-///  - Unit 6 uses the middle fingers.
-///  - Unit 7 uses the ring fingers.
-///  - Unit 8 uses the little fingers.
-///  - Unit 9 shows left‑hand fingers.
-///  - Unit 10 shows right‑hand fingers.
-///  - Unit 11 shows little and forefingers.
-///  - Units 12–21 show the full keyboard (QWERTY image).
-///  - Units 22–28 show all fingers (special characters and numbers).
+/// Units 1–3: home keys; 4–5: forefingers; 6: middle fingers; 7: ring fingers;
+/// 8: little fingers; 9: left hand; 10: right hand; 11: little+forefingers;
+/// 12–21: qwerty image; 22–28: all fingers.
 String? fingerAssetForUnit(int unitIndex) {
   final n = unitIndex + 1;
   String file;

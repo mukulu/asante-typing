@@ -1,9 +1,9 @@
 name: asante_typing
 description: |
   Asante Typing – a web‑based typing tutor that combines the pedagogical
-  approach of Klavaro with the lesson structure of QuickQWERTY.  It uses a
-  unified two‑pane layout: a persistent menu on the left and a guide/practice
-  area on the right.  Lessons are stored in JSON and can be extended.
+  approach of Klavaro with the lesson structure of QuickQWERTY. It uses a
+  unified two‑pane layout with a persistent menu on the left and a guide or
+  practice area on the right. Lessons are stored in JSON and can be extended.
 
 publish_to: 'none'
 version: 0.1.0
@@ -12,17 +12,17 @@ environment:
   sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
+  cupertino_icons: ^1.0.2
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.2
 
 dev_dependencies:
+  dart_code_metrics: ^5.7.6
   flutter_test:
     sdk: flutter
-  very_good_analysis: ^6.0.0
-  mocktail: ^1.0.0
   golden_toolkit: ^0.15.0
-  dart_code_metrics: ^5.7.6
+  mocktail: ^1.0.0
+  very_good_analysis: ^6.0.0
 
 flutter:
   uses-material-design: true

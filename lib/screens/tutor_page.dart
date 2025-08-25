@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
-
 import 'package:asante_typing/models/units.dart';
 import 'package:asante_typing/utils/typing_utils.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 /// A unified two‑pane layout for the typing tutor.
 ///
@@ -66,7 +65,7 @@ class _TutorPageState extends State<TutorPage> {
     }
     if (typed.length <= _currentText.length) {
       _errors = 0;
-      for (int i = 0; i < typed.length; i++) {
+      for (var i = 0; i < typed.length; i++) {
         if (typed[i] != _currentText[i]) _errors++;
       }
     }
@@ -88,7 +87,6 @@ class _TutorPageState extends State<TutorPage> {
     final minutes = elapsed.inMilliseconds / 60000.0;
     final wpm = minutes > 0 ? (correct / 5.0) / minutes : 0;
     final cpm = minutes > 0 ? correct / minutes : 0;
-
     showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -142,7 +140,6 @@ class _TutorPageState extends State<TutorPage> {
     final minutes = elapsed.inMilliseconds / 60000.0;
     final wpm = minutes > 0 ? (correct / 5.0) / minutes : 0;
     final cpm = minutes > 0 ? correct / minutes : 0;
-
     return Scaffold(
       appBar: AppBar(title: const Text('Asante Typing')),
       body: Row(
@@ -274,15 +271,15 @@ class _TutorPageState extends State<TutorPage> {
     );
   }
 
-  /// Strips all HTML tags from a snippet of guide text.
+  /// Strips all HTML tags from the [html] string.
   String _stripHtml(String html) {
     return html.replaceAll(RegExp('<[^>]+>'), '');
   }
 
-  /// Builds a RichText showing the target string with colour coding.
+  /// Builds a coloured [RichText] representation of the target and typed strings.
   Widget _buildTargetText(String target, String typed) {
     final spans = <TextSpan>[];
-    for (int i = 0; i < target.length; i++) {
+    for (var i = 0; i < target.length; i++) {
       final ch = target[i];
       final inRange = i < typed.length;
       final correct = inRange && typed[i] == ch;
