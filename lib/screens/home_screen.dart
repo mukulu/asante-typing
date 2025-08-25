@@ -36,7 +36,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Typing Tutor'),
+        // Display the rebranded application name in the home page header.
+        title: const Text('Asante Typing'),
       ),
       body: FutureBuilder<UnitsData>(
         future: _unitsFuture,

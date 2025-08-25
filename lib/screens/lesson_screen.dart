@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 import '../models/units.dart';
 
@@ -30,6 +31,32 @@ class _LessonScreenState extends State<LessonScreen> {
   int _errors = 0;
   bool _finished = false;
 
+  // Periodic timer used to refresh the UI each second once typing
+  // begins.  Without this the elapsed time and computed speeds
+  // remain static between keystrokes.  It is cancelled when the
+  // lesson finishes or when the widget is disposed.
+  Timer? _ticker;
+
+  /// Map unit numbers to instructional finger position diagrams.  These
+  /// images are hosted on GitHub and originate from the QuickQWERTY
+  /// rebranding commit.  They illustrate which fingers should be used
+  /// for each group of keys.  If a unit number is not present in this
+  /// map, no image is shown for that lesson.
+  static const Map<int, String> _fingerImages = {
+    1:
+        'https://raw.githubusercontent.com/susam/quickqwerty/4f8a121baa0c1ef4df0c867993f684749f8c630e/img/home-keys-position.svg.png',
+    2:
+        'https://raw.githubusercontent.com/susam/quickqwerty/4f8a121baa0c1ef4df0c867993f684749f8c630e/img/forefingers.svg.png',
+    3:
+        'https://raw.githubusercontent.com/susam/quickqwerty/4f8a121baa0c1ef4df0c867993f684749f8c630e/img/middlefingers.svg.png',
+    4:
+        'https://raw.githubusercontent.com/susam/quickqwerty/4f8a121baa0c1ef4df0c867993f684749f8c630e/img/ringfingers.svg.png',
+    5:
+        'https://raw.githubusercontent.com/susam/quickqwerty/4f8a121baa0c1ef4df0c867993f684749f8c630e/img/littlefingers.svg.png',
+    6:
+        'https://raw.githubusercontent.com/susam/quickqwerty/4f8a121baa0c1ef4df0c867993f684749f8c630e/img/allfingers.svg.png',
+  };
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +75,8 @@ class _LessonScreenState extends State<LessonScreen> {
   void dispose() {
     _controller.removeListener(_onChanged);
     _controller.dispose();
+    // Cancel the periodic ticker if it is still running.
+    _ticker?.cancel();
     super.dispose();
   }
 
@@ -55,9 +84,20 @@ class _LessonScreenState extends State<LessonScreen> {
   void _onChanged() {
     final typed = _controller.text;
     if (_finished) return;
-    // Start timing when the first character is entered.
+    // Start timing when the first character is entered.  Also start a
+    // periodic timer that calls setState() every second to refresh
+    // time‑dependent metrics such as elapsed time, WPM and CPM.  The
+    // timer is started only once.
     if (typed.isNotEmpty && _startTime == null) {
       _startTime = DateTime.now();
+      _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted && !_finished) {
+          setState(() {
+            // Trigger rebuild; the actual metrics are computed in
+            // the build method.  No state variables updated here.
+          });
+        }
+      });
     }
     // Count mismatches.  Extra characters typed beyond the target
     // contribute to the error count.
@@ -77,6 +117,8 @@ class _LessonScreenState extends State<LessonScreen> {
     // Check for completion.
     if (typed.length >= _lessonText.length) {
       _finished = true;
+      // Cancel ticker when finished to stop updating the UI.
+      _ticker?.cancel();
       _showResults();
     }
   }
@@ -116,15 +158,19 @@ class _LessonScreenState extends State<LessonScreen> {
   /// characters to total characters in the target text.
   void _showResults() {
     final typedLength = _controller.text.length;
-    final correctChars = _lessonText.length - _errors;
-    final elapsedSeconds = _startTime == null
-        ? 0.0
-        : DateTime.now().difference(_startTime!).inMilliseconds / 1000.0;
-    final minutes = elapsedSeconds / 60.0;
-    final double wpm = minutes > 0 ? (correctChars / 5.0) / minutes : 0;
+    // Clamp correct character count to a non‑negative value in case
+    // errors exceed the target text length.
+    final correctChars = (_lessonText.length - _errors).clamp(0, _lessonText.length);
+    final Duration elapsed = _startTime == null
+        ? Duration.zero
+        : DateTime.now().difference(_startTime!);
+    final double minutes = elapsed.inSeconds / 60.0;
+    final double wpm = minutes > 0 ? (correctChars / 5.0) / minutes : 0.0;
+    final double cpm = minutes > 0 ? (typedLength / minutes) : 0.0;
     final double accuracy = _lessonText.isNotEmpty
         ? (correctChars / _lessonText.length) * 100.0
         : 0.0;
+    final String elapsedStr = _formatDuration(elapsed);
     showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -135,9 +181,13 @@ class _LessonScreenState extends State<LessonScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Speed (WPM): ${wpm.toStringAsFixed(2)}'),
-              Text('Accuracy: ${accuracy.toStringAsFixed(1)}%'),
+              Text('Length: ${_lessonText.length}'),
+              Text('Typed: $typedLength'),
               Text('Errors: $_errors'),
+              Text('WPM: ${wpm.toStringAsFixed(2)}'),
+              Text('CPM: ${cpm.toStringAsFixed(2)}'),
+              Text('Accuracy: ${accuracy.toStringAsFixed(1)}%'),
+              Text('Time: $elapsedStr'),
             ],
           ),
           actions: [
@@ -153,6 +203,17 @@ class _LessonScreenState extends State<LessonScreen> {
         );
       },
     );
+  }
+
+  /// Format a [Duration] into a human‑readable mm:ss string.  Single
+  /// digit values are zero‑padded to maintain a consistent width.
+  String _formatDuration(Duration d) {
+    final int totalSeconds = d.inSeconds;
+    final int minutes = totalSeconds ~/ 60;
+    final int seconds = totalSeconds % 60;
+    final String mm = minutes.toString().padLeft(2, '0');
+    final String ss = seconds.toString().padLeft(2, '0');
+    return '$mm:$ss';
   }
 
   /// Build a rich text widget that highlights correct and incorrect
@@ -200,6 +261,22 @@ class _LessonScreenState extends State<LessonScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Compute derived metrics for the progress indicator.  These values
+    // update each time the state changes or when the periodic ticker
+    // triggers a rebuild.
+    final int typedLength = _controller.text.length;
+    final Duration elapsed = _startTime == null
+        ? Duration.zero
+        : DateTime.now().difference(_startTime!);
+    final double minutes = elapsed.inSeconds / 60.0;
+    final double wpm = minutes > 0
+        ? ((_lessonText.length - _errors).clamp(0, _lessonText.length) / 5.0) /
+            minutes
+        : 0.0;
+    final double cpm = minutes > 0 ? (typedLength / minutes) : 0.0;
+    final String elapsedStr = _formatDuration(elapsed);
+    final String? fingerUrl = _fingerImages[widget.unitNumber];
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -217,6 +294,18 @@ class _LessonScreenState extends State<LessonScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Show a diagram illustrating which fingers to use for
+            // this unit's keys.  If no diagram is defined, nothing
+            // appears here.
+            if (fingerUrl != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Image.network(
+                  fingerUrl,
+                  height: 100,
+                  fit: BoxFit.contain,
+                ),
+              ),
             // Display the target text with highlighting.
             Expanded(
               child: SingleChildScrollView(
@@ -238,15 +327,19 @@ class _LessonScreenState extends State<LessonScreen> {
               ),
             ),
             const SizedBox(height: 8.0),
-            // Real‑time feedback row showing error count.
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // Real‑time feedback on progress and performance.  A Wrap
+            // widget ensures that long rows wrap gracefully on narrow
+            // screens.
+            Wrap(
+              spacing: 16.0,
+              runSpacing: 8.0,
               children: [
+                Text('Length: ${_lessonText.length}'),
+                Text('Typed: $typedLength'),
                 Text('Errors: $_errors'),
-                if (_startTime != null && !_finished)
-                  Text(
-                    'Elapsed: ${DateTime.now().difference(_startTime!).inSeconds}s',
-                  ),
+                Text('WPM: ${wpm.toStringAsFixed(1)}'),
+                Text('CPM: ${cpm.toStringAsFixed(1)}'),
+                Text('Time: $elapsedStr'),
               ],
             ),
           ],

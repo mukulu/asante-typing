@@ -15,8 +15,15 @@ class TypingTutorApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Set up a Material application for the Asante Typing tutor.  The title
+    // and theme are customised to reflect the rebranded name introduced
+    // upstream.  This app can run as a web application as well as on
+    // mobile platforms.
     return MaterialApp(
-      title: 'Typing Tutor',
+      // Use the new application title based on the rebranding from
+      // QuickQWERTY to Asante Typing.  This text appears in the
+      // browser tab title when deployed as a web app.
+      title: 'Asante Typing',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
