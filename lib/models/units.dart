@@ -9,14 +9,6 @@ class Lesson {
     required this.guide,
     required this.subunits,
   });
-  /// Human‑readable lesson title (for example, `asdf jkl;`).
-  final String title;
-
-  /// HTML guide text introducing the lesson. May contain image tags.
-  final String guide;
-
-  /// Mapping from subunit name (e.g. `Grip`, `Words`) to practice strings.
-  final Map<String, String> subunits;
 
   /// Creates a [Lesson] from a JSON map.
   factory Lesson.fromJson(Map<String, dynamic> json) {
@@ -31,16 +23,19 @@ class Lesson {
       subunits: subs,
     );
   }
+  /// Human‑readable lesson title (for example, `asdf jkl;`).
+  final String title;
+
+  /// HTML guide text introducing the lesson. May contain image tags.
+  final String guide;
+
+  /// Mapping from subunit name (e.g. `Grip`, `Words`) to practice strings.
+  final Map<String, String> subunits;
 }
 
 /// Container for the collection of units. Contains the primary [main] list and
 /// an optional [alt] list for alternate layouts or number‑key lessons.
 class UnitsData {
-  /// Primary list of lessons (units 1–28).
-  final List<Lesson> main;
-
-  /// Optional alternate lessons (e.g. number split style).
-  final List<Lesson>? alt;
 
   /// Constructs a [UnitsData] instance.
   UnitsData({required this.main, this.alt});
@@ -53,4 +48,9 @@ class UnitsData {
     final alts = (json['alt'] as List<dynamic>?)?.map((e) => Lesson.fromJson(e as Map<String, dynamic>)).toList();
     return UnitsData(main: mains, alt: alts);
   }
+  /// Primary list of lessons (units 1–28).
+  final List<Lesson> main;
+
+  /// Optional alternate lessons (e.g. number split style).
+  final List<Lesson>? alt;
 }

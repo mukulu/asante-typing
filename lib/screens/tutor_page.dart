@@ -39,8 +39,8 @@ class _TutorPageState extends State<TutorPage> {
 
   @override
   void dispose() {
-    _controller.removeListener(_onChanged);
-    _controller.dispose();
+    _controller..removeListener(_onChanged)
+    ..dispose();
     _ticker?.cancel();
     super.dispose();
   }
