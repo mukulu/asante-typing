@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:asante_typing/models/units.dart';
+import 'package:asante_typing/state/zoom_scope.dart';
 import 'package:asante_typing/theme/app_colors.dart';
 import 'package:asante_typing/utils/typing_utils.dart';
 import 'package:asante_typing/widgets/footer.dart';
@@ -11,7 +12,6 @@ import 'package:asante_typing/widgets/session_summary.dart';
 import 'package:asante_typing/widgets/subunit_chips.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
-
 
 /// The main page of the typing tutor. Displays a left navigation pane of
 /// units and a content area for guides and practice.
@@ -213,6 +213,24 @@ class _TutorPageState extends State<TutorPage> {
             ],
           ),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Zoom out (Ctrl+-)',
+            icon: const Icon(Icons.zoom_out),
+            onPressed: () => ZoomScope.of(context).zoomOut(),
+          ),
+          IconButton(
+            tooltip: 'Zoom in (Ctrl+=)',
+            icon: const Icon(Icons.zoom_in),
+            onPressed: () => ZoomScope.of(context).zoomIn(),
+          ),
+          //Optional: reset via long-press or a third button:
+          IconButton(
+            tooltip: 'Reset zoom (Ctrl+0)',
+            icon: const Icon(Icons.refresh),
+            onPressed: () => ZoomScope.of(context).reset(),
+          ),
+      ],
         backgroundColor: kColorGreen,
         foregroundColor: kColorRed,
         centerTitle: true,
