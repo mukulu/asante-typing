@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'screens/home_screen.dart';
+import 'screens/tutor_page.dart';
 
 /// Entry point for the typing tutor application.  Creates a Material
 /// application with a simple blue theme and sets the home screen to
@@ -28,7 +28,7 @@ class TypingTutorApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const HomeScreen(),
+      home: const TutorPage(),
     );
   }
 }
