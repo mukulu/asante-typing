@@ -273,9 +273,9 @@ Please avoid:
 
 ---
 
-## License
+# License — GNU General Public License v3.0
+
+This repository is licensed under the **GNU General Public License, version 3 (GPL-3.0)**.  
+You can copy the full text below into a file named `LICENSE` at the root of your project.
 
 Copyright © **John Francis Mukulu SJ**, 2025 — [https://mukulu.org](https://mukulu.org)
-
-> Unless a `LICENSE` file is present, all rights are reserved.
-> To open-source, add a license file (e.g., MIT or Apache-2.0) and update this section accordingly.
