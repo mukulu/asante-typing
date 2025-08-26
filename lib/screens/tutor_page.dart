@@ -23,6 +23,7 @@ class TutorPage extends StatefulWidget {
 }
 
 class _TutorPageState extends State<TutorPage> {
+
   UnitsData? _data;
   int _selectedUnit = 0;
   String? _selectedSubunit;
@@ -157,6 +158,9 @@ class _TutorPageState extends State<TutorPage> {
 
     // Determine which image to display for the current lesson.
     final selectedLesson = data.main[_selectedUnit];
+    // Accent for this unit stage
+    final accent = UnitColors.accent(_selectedUnit);
+
     String? diagramAsset;
     if (selectedLesson.images.isNotEmpty) {
       final imgPath = selectedLesson.images.first;
@@ -190,7 +194,7 @@ class _TutorPageState extends State<TutorPage> {
                   child: Text(
                     'Asante Typing',
                     style: TextStyle(
-                      color: kColorYellow,                // ← yellow text (top)
+                      color: kColorYellow,                // yellow text (top)
                       fontWeight: FontWeight.w700,
                       fontSize: 18,
                     ),
@@ -200,11 +204,11 @@ class _TutorPageState extends State<TutorPage> {
               // Center dynamic lesson title
               Align(
                 child: Text(
-                  _dynamicTitle,                          // your computed title
+                  _dynamicTitle,                          // the computed title
                   textAlign: TextAlign.center,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: kColorYellow,                  // ← yellow text (top)
+                    color: kColorYellow,                  // the yellow text (top)
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
                   ),
@@ -232,7 +236,7 @@ class _TutorPageState extends State<TutorPage> {
           ),
       ],
         backgroundColor: kColorGreen,
-        foregroundColor: kColorRed,
+        foregroundColor: kColorYellow,
         centerTitle: true,
       ),
       body: Row(
@@ -241,6 +245,7 @@ class _TutorPageState extends State<TutorPage> {
           LeftNav(
             lessons: data.main,
             selectedIndex: _selectedUnit,
+            accent: accent,
             onSelect: (index) {
               setState(() {
                 _selectedUnit = index;
@@ -277,6 +282,8 @@ class _TutorPageState extends State<TutorPage> {
                   SubunitChips(
                     keys: selectedLesson.subunits.keys,
                     selectedKey: _selectedSubunit,
+                    accent: accent,
+                    unitIndex: _selectedUnit,
                     onSelect: (key) {
                       setState(() {
                         _selectedSubunit = key;
@@ -327,6 +334,10 @@ class _TutorPageState extends State<TutorPage> {
                     // Target text and typing input
                     Card(
                       elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        side: BorderSide(color: accent),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: _buildTargetText(_currentText, _controller.text),
@@ -352,6 +363,7 @@ class _TutorPageState extends State<TutorPage> {
                       elapsed: elapsed,
                       wpm: wpm,
                       cpm: cpm,
+                      accent: accent
                     ),
                     const SizedBox(height: 16),
                     // Final summary if completed
@@ -363,7 +375,7 @@ class _TutorPageState extends State<TutorPage> {
                         wpm: _sessionWpm,
                         cpm: _sessionCpm,
                         accuracy: _sessionAccuracy,
-                        duration: _sessionDuration,
+                        duration: _sessionDuration, accent: accent,
                       ),
                   ],
                 ],

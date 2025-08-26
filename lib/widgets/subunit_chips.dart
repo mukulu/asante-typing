@@ -7,7 +7,12 @@ import 'package:flutter/material.dart';
 class SubunitChips extends StatelessWidget {
   /// Creates a [SubunitChips] widget.
   const SubunitChips({
-    required this.keys, required this.selectedKey, required this.onSelect, super.key,
+    required this.keys, 
+    required this.selectedKey, 
+    required this.onSelect, 
+    required this.unitIndex,
+    required this.accent, 
+    super.key,
   });
 
   /// Keys (names) of the subunits to display.
@@ -19,8 +24,13 @@ class SubunitChips extends StatelessWidget {
   /// Callback when a subunit is selected. Called with the subunit key.
   final ValueChanged<String> onSelect;
 
+  final Color accent;
+
+  final int unitIndex;
+
   @override
   Widget build(BuildContext context) {
+    UnitColors.selectionFill(accent); // Adjusted to match the expected arguments
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -29,10 +39,11 @@ class SubunitChips extends StatelessWidget {
           ChoiceChip(
             label: Text(
               key,
-              style: const TextStyle(fontWeight: FontWeight.w700),
+              style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             selected: selectedKey == key,
-            selectedColor: kColorGreen.withValues(alpha: 0.2),
+            selectedColor: accent.withValues(alpha: 0.22),
+            side: BorderSide(color: accent),
             onSelected: (selected) {
               if (selected) {
                 onSelect(key);

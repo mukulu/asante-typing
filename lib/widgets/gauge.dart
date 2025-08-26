@@ -13,7 +13,8 @@ class Gauge extends StatelessWidget {
   const Gauge({
     required this.label, 
     required this.value, 
-    required this.max, 
+    required this.max,
+    required this.accent,
     super.key,
     this.size = 110,
     this.iconSize = 28,
@@ -36,6 +37,8 @@ class Gauge extends StatelessWidget {
   final double iconSize;
 
   final IconData icon;
+
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {

@@ -10,7 +10,15 @@ import 'package:flutter/material.dart';
 class SessionSummary extends StatelessWidget {
   /// Creates a [SessionSummary].
   const SessionSummary({
-    required this.length, required this.typed, required this.errors, required this.wpm, required this.cpm, required this.accuracy, required this.duration, super.key,
+    required this.length, 
+    required this.typed, 
+    required this.errors, 
+    required this.wpm, 
+    required this.cpm, 
+    required this.accuracy, 
+    required this.duration, 
+    required this.accent, 
+    super.key,
   });
 
   /// Total length of the text.
@@ -27,6 +35,8 @@ class SessionSummary extends StatelessWidget {
   final double accuracy;
   /// Duration of the session.
   final Duration duration;
+
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
@@ -45,9 +55,9 @@ class SessionSummary extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                Gauge(label: 'WPM', value: wpm, max: 60, size: 120, iconSize: 30),
+                Gauge(label: 'WPM', value: wpm, max: 60, size: 120, iconSize: 30, accent: accent),
                 const SizedBox(width: 24),
-                Gauge(label: 'CPM', value: cpm, max: 300, size: 120, iconSize: 30),
+                Gauge(label: 'CPM', value: cpm, max: 300, size: 120, iconSize: 30, accent: accent),
               ],
             ),
             const SizedBox(height: 8),
@@ -55,7 +65,7 @@ class SessionSummary extends StatelessWidget {
               value: progress,
               minHeight: 8,
               backgroundColor: Colors.grey.shade300,
-              valueColor: const AlwaysStoppedAnimation<Color>(kColorGreen),
+              valueColor: AlwaysStoppedAnimation<Color>(accent),
             ),
             const SizedBox(height: 8),
             Wrap(

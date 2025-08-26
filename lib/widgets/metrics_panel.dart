@@ -9,7 +9,14 @@ import 'package:flutter/material.dart';
 class MetricsPanel extends StatelessWidget {
   /// Creates a [MetricsPanel].
   const MetricsPanel({
-    required this.currentLength, required this.typedLength, required this.errors, required this.elapsed, required this.wpm, required this.cpm, super.key,
+    required this.currentLength, 
+    required this.typedLength, 
+    required this.errors, 
+    required this.elapsed, 
+    required this.wpm, 
+    required this.cpm, 
+    required this.accent, 
+    super.key,
   });
 
   /// Total length of the practice text.
@@ -30,6 +37,8 @@ class MetricsPanel extends StatelessWidget {
   /// Current characters per minute.
   final double cpm;
 
+  final Color accent;
+
   @override
   Widget build(BuildContext context) {
     final progress = currentLength > 0
@@ -44,14 +53,14 @@ class MetricsPanel extends StatelessWidget {
           value: progress,
           minHeight: 8,
           backgroundColor: Colors.grey.shade300,
-          valueColor: const AlwaysStoppedAnimation<Color>(kColorGreen),
+          valueColor: AlwaysStoppedAnimation<Color>(accent),
         ),
         const SizedBox(height: 8),
         Row(
           children: [
-            Gauge(label: 'WPM', value: wpm, max: 60, size: 120, iconSize: 30),
+            Gauge(label: 'WPM', value: wpm, max: 60, size: 120, iconSize: 30, accent: accent),
             const SizedBox(width: 24),
-            Gauge(label: 'CPM', value: cpm, max: 300, size: 120, iconSize: 30),
+            Gauge(label: 'CPM', value: cpm, max: 300, size: 120, iconSize: 30, accent: accent),
           ],
         ),
         const SizedBox(height: 8),
