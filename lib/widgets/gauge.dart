@@ -1,5 +1,5 @@
 // A reusable circular gauge widget used to display WPM and CPM.
-
+import 'package:asante_typing/state/zoom_scope.dart';
 import 'package:asante_typing/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
@@ -52,19 +52,25 @@ class Gauge extends StatelessWidget {
           ? '${clamped.toStringAsFixed(0)}%'
           : clamped.toStringAsFixed(clamped < 10 ? 1 : 0);
 
+    final zoomScale = ZoomScope.of(context).scale;
+    final effSize = size * zoomScale;                   // scale the diameter
+    final effIconSize = iconSize * zoomScale;           // scale the icon
+    final effStroke = (8 * zoomScale).clamp(6.0, 14.0); // scale the arc width (keep sane)
+
+
     return SizedBox(
-      width: size,
-      height: size,
+      width: effSize,
+      height: effSize,
       child: Stack(
         alignment: Alignment.center,
         children: [
           // Track
           SizedBox(
-            width: size,
-            height: size,
+            width: effSize,
+            height: effSize,
             child: CircularProgressIndicator(
               value: progress,
-              strokeWidth: 8,
+              strokeWidth: effStroke,
               backgroundColor: Colors.grey.shade300,
               valueColor: AlwaysStoppedAnimation<Color>(accent),
             ),
@@ -73,7 +79,7 @@ class Gauge extends StatelessWidget {
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: iconSize, color: kColorRed),
+              Icon(icon, size: effIconSize, color: kColorRed),
               const SizedBox(height: 4),
               Text(
                 centerText, // ← use the formatted value (% for max==100)

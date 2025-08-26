@@ -5,8 +5,8 @@ class ZoomController extends ChangeNotifier {
   static const _kPrefKey = 'zoom.scale';
 
   double _scale = 1;
-  final double minScale = 0.8;
-  final double maxScale = 1.6;
+  final double minScale = 0.5;
+  final double maxScale = 1.9;
   final double step = 0.1;
 
   double get scale => _scale;

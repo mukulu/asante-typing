@@ -166,17 +166,46 @@ class _TutorPageState extends State<TutorPage> {
           child: Stack(
             children: [
               // Left brand
-              const Align(
+              Align(
                 alignment: Alignment.centerLeft,
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    'Asante Typing',
-                    style: TextStyle(
-                      color: kColorYellow,                // yellow text (top)
-                      fontWeight: FontWeight.w700,
-                      fontSize: 18,
-                    ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Builder(
+                    builder: (context) {
+                      // Current zoom scale (1.0 = normal). This is already wired up in your app.
+                      final s = ZoomScope.of(context).scale;
+
+                      // Keep the brand text base size at 18; it will be multiplied by the
+                      // global text scaler automatically. We size the logo to match.
+                      const kBrandBaseFont = 18.0;
+
+                      // Make the logo roughly the same visual height as the text (slightly larger).
+                      final logoSide = (kBrandBaseFont * s) * 2.0;
+
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Logo scales with zoom
+                          Image.asset(
+                            'assets/img/aorlogo.jpg',
+                            height: logoSide,
+                            width: logoSide,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const SizedBox(),
+                          ),
+                          const SizedBox(width: 8),
+                          // Brand text: its size already scales via your global text scaler
+                          const Text(
+                            'Asante Typing',
+                            style: TextStyle(
+                              color: kColorYellow,
+                              fontWeight: FontWeight.w700,
+                              fontSize: kBrandBaseFont,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
@@ -203,18 +232,18 @@ class _TutorPageState extends State<TutorPage> {
         actions: [
           IconButton(
             tooltip: 'Zoom out (Ctrl+-)',
-            icon: const Icon(Icons.zoom_out),
+            icon: const Icon(Icons.zoom_out, color: kColorYellow),
             onPressed: () => ZoomScope.of(context).zoomOut(),
           ),
           IconButton(
             tooltip: 'Zoom in (Ctrl+=)',
-            icon: const Icon(Icons.zoom_in),
+            icon: const Icon(Icons.zoom_in, color: kColorYellow),
             onPressed: () => ZoomScope.of(context).zoomIn(),
           ),
           //Optional: reset via long-press or a third button:
           IconButton(
             tooltip: 'Reset zoom (Ctrl+0)',
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: kColorYellow),
             onPressed: () => ZoomScope.of(context).reset(),
           ),
       ],
@@ -256,113 +285,119 @@ class _TutorPageState extends State<TutorPage> {
           const VerticalDivider(width: 1),
           // Right content area
           Expanded(
-            child: IconTheme.merge(
-              data: IconThemeData(size:18.0 * zoomScale),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Subunit chips
-                    IconTheme.merge(
-                      data: IconThemeData(size: 18.0 * zoomScale),
-                      child: SubunitChips(
-                        keys: selectedLesson.subunits.keys,
-                        selectedKey: _selectedSubunit,
-                        accent: accent,
-                        unitIndex: _selectedUnit,
-                        onSelect: (key) {
-                          setState(() {
-                            _selectedSubunit = key;
-                            _lastSubunitPerUnit[_selectedUnit] = key;
-                            // Reset session state.
-                            _controller.clear();
-                            _startTime = null;
-                            _ticker?.cancel();
-                            _ticker = null;
-                            _errors = 0;
-                            _finished = false;
-                            _sessionCompleted = false;
-                          });
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    // Guide image
-                    if (diagramAsset != null) ...[
-                      Center(
-                        child: Image.asset(
-                          diagramAsset,
-                          height: _selectedSubunit == null ? 150 : 120,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const SizedBox(),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Subunit chips
+                        IconTheme.merge(
+                          data: IconThemeData(size: 18.0 * zoomScale),
+                          child: SubunitChips(
+                            keys: selectedLesson.subunits.keys,
+                            selectedKey: _selectedSubunit,
+                            accent: accent,
+                            unitIndex: _selectedUnit,
+                            onSelect: (key) {
+                              setState(() {
+                                _selectedSubunit = key;
+                                _lastSubunitPerUnit[_selectedUnit] = key;
+                                // Reset session state.
+                                _controller.clear();
+                                _startTime = null;
+                                _ticker?.cancel();
+                                _ticker = null;
+                                _errors = 0;
+                                _finished = false;
+                                _sessionCompleted = false;
+                              });
+                            },
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-                    // Guide text
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      margin: const EdgeInsets.only(top: 8),
-                      decoration: BoxDecoration(
-                        color: kColorYellow.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        _stripHtml(selectedLesson.guide),
-                        textAlign: TextAlign.left,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    if (_selectedSubunit == null) ...[
-                      // Guide-only view: no practice fields.
-                    ] else ...[
-                      // Target text and typing input
-                      Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          side: BorderSide(color: accent),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Padding(
+                        const SizedBox(height: 12),
+                        // Guide image
+                        if (diagramAsset != null) ...[
+                          Center(
+                            child: Image.asset(
+                              diagramAsset,
+                              height: _selectedSubunit == null ? 150 : 120,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => const SizedBox(),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        // Guide text
+                        Container(
+                          width: double.infinity,
                           padding: const EdgeInsets.all(16),
-                          child: _buildTargetText(_currentText, _controller.text),
+                          margin: const EdgeInsets.only(top: 8),
+                          decoration: BoxDecoration(
+                            color: kColorYellow.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            _stripHtml(selectedLesson.guide),
+                            textAlign: TextAlign.left,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _controller,
-                        autofocus: true,
-                        maxLines: null,
-                        style: const TextStyle(fontSize: 20),
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'Start typing here…',
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // Real-time metrics panel
-                      IconTheme.merge(
-                        data: IconThemeData(size: 20.0 * zoomScale), // pick the base you like
-                        child: MetricsPanel(
-                          isComplete: _sessionCompleted,     // ← single panel now handles both states
-                          total: _currentText.length,
-                          typed: typedLen,
-                          errors: _errors,
-                          elapsed: elapsed,
-                          wpm: wpm,
-                          cpm: cpm,
-                          accent: accent, currentLength: _currentText.length, typedLength: _controller.text.length,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                  ],
-                ),
-              ),
-            )
+                        const SizedBox(height: 12),
+                        if (_selectedSubunit == null) ...[
+                          // Guide-only view: no practice fields.
+                        ] else ...[                      
+                          // Real-time metrics panel FIRST (so it’s not pushed by growing input)
+                          MetricsPanel(
+                            currentLength: _currentText.length,
+                            typedLength: typedLen,
+                            errors: _errors,
+                            elapsed: elapsed,
+                            wpm: wpm,
+                            cpm: cpm,
+                            accent: accent,
+                            isComplete: _sessionCompleted,
+                            total: _currentText.length,
+                            typed: typedLen,
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Target text (the text you read)
+                          Card(
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(
+                              side: BorderSide(color: accent),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: _buildTargetText(_currentText, _controller.text),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Typing input
+                          TextField(
+                            controller: _controller,
+                            autofocus: true,
+                            maxLines: null,
+                            style: const TextStyle(fontSize: 20), // keep base font 20
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              hintText: 'Start typing here…',
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),
