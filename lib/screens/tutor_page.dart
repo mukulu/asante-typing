@@ -180,6 +180,8 @@ class _TutorPageState extends State<TutorPage> {
     final wpm = minutes > 0 ? (correct / 5.0) / minutes : 0.0;
     final cpm = minutes > 0 ? correct / minutes : 0.0;
 
+    final zoomScale = ZoomScope.of(context).scale; // 1.0 = normal, >1 = zoomed in
+
     return Scaffold(
       appBar: AppBar(
         title: const SizedBox.shrink(),
@@ -217,6 +219,10 @@ class _TutorPageState extends State<TutorPage> {
             ],
           ),
         ),
+        // ⬇️ scale the action icons with the zoom value
+        actionsIconTheme: IconThemeData(size: 24.0 * zoomScale),
+        // (optional) also scale the leading/back icon if you ever use one
+        iconTheme: IconThemeData(size: 24.0 * zoomScale),
         actions: [
           IconButton(
             tooltip: 'Zoom out (Ctrl+-)',
@@ -273,114 +279,123 @@ class _TutorPageState extends State<TutorPage> {
           const VerticalDivider(width: 1),
           // Right content area
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Subunit chips
-                  SubunitChips(
-                    keys: selectedLesson.subunits.keys,
-                    selectedKey: _selectedSubunit,
-                    accent: accent,
-                    unitIndex: _selectedUnit,
-                    onSelect: (key) {
-                      setState(() {
-                        _selectedSubunit = key;
-                        _lastSubunitPerUnit[_selectedUnit] = key;
-                        // Reset session state.
-                        _controller.clear();
-                        _startTime = null;
-                        _ticker?.cancel();
-                        _ticker = null;
-                        _errors = 0;
-                        _finished = false;
-                        _sessionCompleted = false;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  // Guide image
-                  if (diagramAsset != null) ...[
-                    Center(
-                      child: Image.asset(
-                        diagramAsset,
-                        height: _selectedSubunit == null ? 150 : 120,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => const SizedBox(),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  // Guide text
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    margin: const EdgeInsets.only(top: 8),
-                    decoration: BoxDecoration(
-                      color: kColorYellow.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      _stripHtml(selectedLesson.guide),
-                      textAlign: TextAlign.left,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  if (_selectedSubunit == null) ...[
-                    // Guide-only view: no practice fields.
-                  ] else ...[
-                    // Target text and typing input
-                    Card(
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        side: BorderSide(color: accent),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: _buildTargetText(_currentText, _controller.text),
+            child: IconTheme.merge(
+              data: IconThemeData(size:18.0 * zoomScale),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Subunit chips
+                    IconTheme.merge(
+                      data: IconThemeData(size: 18.0 * zoomScale),
+                      child: SubunitChips(
+                        keys: selectedLesson.subunits.keys,
+                        selectedKey: _selectedSubunit,
+                        accent: accent,
+                        unitIndex: _selectedUnit,
+                        onSelect: (key) {
+                          setState(() {
+                            _selectedSubunit = key;
+                            _lastSubunitPerUnit[_selectedUnit] = key;
+                            // Reset session state.
+                            _controller.clear();
+                            _startTime = null;
+                            _ticker?.cancel();
+                            _ticker = null;
+                            _errors = 0;
+                            _finished = false;
+                            _sessionCompleted = false;
+                          });
+                        },
                       ),
                     ),
                     const SizedBox(height: 12),
-                    TextField(
-                      controller: _controller,
-                      autofocus: true,
-                      maxLines: null,
-                      style: const TextStyle(fontSize: 20),
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: 'Start typing here…',
+                    // Guide image
+                    if (diagramAsset != null) ...[
+                      Center(
+                        child: Image.asset(
+                          diagramAsset,
+                          height: _selectedSubunit == null ? 150 : 120,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const SizedBox(),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    // Guide text
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      margin: const EdgeInsets.only(top: 8),
+                      decoration: BoxDecoration(
+                        color: kColorYellow.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        _stripHtml(selectedLesson.guide),
+                        textAlign: TextAlign.left,
+                        style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    // Real-time metrics panel
-                    MetricsPanel(
-                      currentLength: _currentText.length,
-                      typedLength: typedLen,
-                      errors: _errors,
-                      elapsed: elapsed,
-                      wpm: wpm,
-                      cpm: cpm,
-                      accent: accent
-                    ),
-                    const SizedBox(height: 16),
-                    // Final summary if completed
-                    if (_sessionCompleted)
-                      SessionSummary(
-                        length: _currentText.length,
-                        typed: _sessionTyped,
-                        errors: _sessionErrorsFinal,
-                        wpm: _sessionWpm,
-                        cpm: _sessionCpm,
-                        accuracy: _sessionAccuracy,
-                        duration: _sessionDuration, accent: accent,
+                    const SizedBox(height: 12),
+                    if (_selectedSubunit == null) ...[
+                      // Guide-only view: no practice fields.
+                    ] else ...[
+                      // Target text and typing input
+                      Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          side: BorderSide(color: accent),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: _buildTargetText(_currentText, _controller.text),
+                        ),
                       ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _controller,
+                        autofocus: true,
+                        maxLines: null,
+                        style: const TextStyle(fontSize: 20),
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'Start typing here…',
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Real-time metrics panel
+                      IconTheme.merge(
+                        data: IconThemeData(size: 20.0 * zoomScale), // pick the base you like
+                        child: MetricsPanel(
+                          currentLength: _currentText.length,
+                          typedLength: typedLen,
+                          errors: _errors,
+                          elapsed: elapsed,
+                          wpm: wpm,
+                          cpm: cpm,
+                          accent: accent,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Final summary if completed
+                      if (_sessionCompleted)
+                        SessionSummary(
+                          length: _currentText.length,
+                          typed: _sessionTyped,
+                          errors: _sessionErrorsFinal,
+                          wpm: _sessionWpm,
+                          cpm: _sessionCpm,
+                          accuracy: _sessionAccuracy,
+                          duration: _sessionDuration, accent: accent,
+                        ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
+            )
           ),
         ],
       ),
