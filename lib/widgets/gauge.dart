@@ -15,6 +15,7 @@ class Gauge extends StatelessWidget {
     required this.value, 
     required this.max,
     required this.accent,
+    this.footer,
     super.key,
     this.size = 110,
     this.iconSize = 28,
@@ -40,11 +41,17 @@ class Gauge extends StatelessWidget {
 
   final Color accent;
 
+  final String? footer;
+
   @override
   Widget build(BuildContext context) {
     // Clamp ratio between 0 and 1 to avoid overflow.
     final clamped = value.isFinite ? value.clamp(0, max).toDouble() : 0.0;
-    final progress = max == 0 ? 0.0 : (clamped / max);
+    final progress = max > 0 ? (clamped / max) : 0.0; // 0..1 for the arc
+    final centerText = max == 100.0
+          ? '${clamped.toStringAsFixed(0)}%'
+          : clamped.toStringAsFixed(clamped < 10 ? 1 : 0);
+
     return SizedBox(
       width: size,
       height: size,
@@ -59,7 +66,7 @@ class Gauge extends StatelessWidget {
               value: progress,
               strokeWidth: 8,
               backgroundColor: Colors.grey.shade300,
-              valueColor: const AlwaysStoppedAnimation<Color>(kColorGreen),
+              valueColor: AlwaysStoppedAnimation<Color>(accent),
             ),
           ),
           // Center content (icon + value)
@@ -69,10 +76,10 @@ class Gauge extends StatelessWidget {
               Icon(icon, size: iconSize, color: kColorRed),
               const SizedBox(height: 4),
               Text(
-                value.isFinite ? value.toStringAsFixed(0) : '0',
+                centerText, // ← use the formatted value (% for max==100)
                 style: const TextStyle(
                   fontWeight: FontWeight.w700,
-                  fontSize: 18,       // ensure it sits cleanly in center
+                  fontSize: 18,
                 ),
               ),
               Text(
@@ -83,13 +90,19 @@ class Gauge extends StatelessWidget {
                   color: kColorRed,
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: const TextStyle(fontSize: 12, color: kColorRed),
-              ),
+              // Footer (e.g., "123 / 300" or "57.4")
+              if (footer != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  footer!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ],
             ],
           ),
+
+
         ],
       ),
     );

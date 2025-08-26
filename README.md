@@ -81,7 +81,6 @@ asante-typing/
 │  │  ├─ gauge.dart       # Reusable circular gauge widget for metrics
 │  │  ├─ left_nav.dart    # Left navigation panel showing units
 │  │  ├─ metrics_panel.dart# Real‑time metrics and visualisations
-│  │  ├─ session_summary.dart# Session summary card for completed practice
 │  │  └─ subunit_chips.dart# Chips for sub‑unit selection
 │  ├─ screens/
 │  │  └─ tutor_page.dart  # Main page that composes widgets into layout

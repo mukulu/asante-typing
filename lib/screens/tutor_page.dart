@@ -8,7 +8,6 @@ import 'package:asante_typing/utils/typing_utils.dart';
 import 'package:asante_typing/widgets/footer.dart';
 import 'package:asante_typing/widgets/left_nav.dart';
 import 'package:asante_typing/widgets/metrics_panel.dart';
-import 'package:asante_typing/widgets/session_summary.dart';
 import 'package:asante_typing/widgets/subunit_chips.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -40,12 +39,6 @@ class _TutorPageState extends State<TutorPage> {
 
   // Session summary metrics populated when a practice session completes.
   bool _sessionCompleted = false;
-  Duration _sessionDuration = Duration.zero;
-  int _sessionTyped = 0;
-  int _sessionErrorsFinal = 0;
-  double _sessionWpm = 0;
-  double _sessionCpm = 0;
-  double _sessionAccuracy = 0;
 
   @override
   void initState() {
@@ -106,25 +99,9 @@ class _TutorPageState extends State<TutorPage> {
       _finished = true;
       _ticker?.cancel();
       // Compute session metrics.
-      final elapsed = _startTime == null
-          ? Duration.zero
-          : DateTime.now().difference(_startTime!);
-      final correct = (_currentText.length - _errors).clamp(0, _currentText.length);
-      final minutes = elapsed.inMilliseconds / 60000.0;
-      final wpm = minutes > 0 ? (correct / 5.0) / minutes : 0.0;
-      final cpm = minutes > 0 ? correct / minutes : 0.0;
-      final accuracy = typed.isNotEmpty
-          ? ((typed.length - _errors) / typed.length * 100).clamp(0.0, 100.0)
-              
-          : 0.0;
+      (_currentText.length - _errors).clamp(0, _currentText.length);
       setState(() {
         _sessionCompleted = true;
-        _sessionDuration = elapsed;
-        _sessionTyped = typed.length;
-        _sessionErrorsFinal = _errors;
-        _sessionWpm = wpm;
-        _sessionCpm = cpm;
-        _sessionAccuracy = accuracy;
       });
     }
     setState(() {});
@@ -370,27 +347,17 @@ class _TutorPageState extends State<TutorPage> {
                       IconTheme.merge(
                         data: IconThemeData(size: 20.0 * zoomScale), // pick the base you like
                         child: MetricsPanel(
-                          currentLength: _currentText.length,
-                          typedLength: typedLen,
+                          isComplete: _sessionCompleted,     // ← single panel now handles both states
+                          total: _currentText.length,
+                          typed: typedLen,
                           errors: _errors,
                           elapsed: elapsed,
                           wpm: wpm,
                           cpm: cpm,
-                          accent: accent,
+                          accent: accent, currentLength: _currentText.length, typedLength: _controller.text.length,
                         ),
                       ),
                       const SizedBox(height: 16),
-                      // Final summary if completed
-                      if (_sessionCompleted)
-                        SessionSummary(
-                          length: _currentText.length,
-                          typed: _sessionTyped,
-                          errors: _sessionErrorsFinal,
-                          wpm: _sessionWpm,
-                          cpm: _sessionCpm,
-                          accuracy: _sessionAccuracy,
-                          duration: _sessionDuration, accent: accent,
-                        ),
                     ],
                   ],
                 ),
@@ -408,7 +375,7 @@ class _TutorPageState extends State<TutorPage> {
     return html.replaceAll(RegExp('<[^>]+>'), '');
   }
 
-  /// Builds a coloured [RichText] representation of the target and typed strings.
+  /// Builds a coloured [Text.rich] representation of the target and typed strings.
   Widget _buildTargetText(String target, String typed) {
     final spans = <TextSpan>[];
     for (var i = 0; i < target.length; i++) {
@@ -420,11 +387,9 @@ class _TutorPageState extends State<TutorPage> {
           : (correct ? Colors.green : Colors.red);
       spans.add(TextSpan(text: ch, style: TextStyle(color: color)));
     }
-    return RichText(
-      text: TextSpan(
-        style: const TextStyle(fontSize: 20, color: Colors.black),
-        children: spans,
-      ),
+    return Text.rich(
+      TextSpan(children: spans),
+      style: const TextStyle(fontSize: 20, color: Colors.black),
     );
   }
 
