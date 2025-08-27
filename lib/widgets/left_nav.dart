@@ -27,6 +27,8 @@ class LeftNav extends StatelessWidget {
 
   final Color accent;
 
+  Color get selectedBg => UnitColors.darken(kColorGreen, 0.18); // darker than accent
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -43,7 +45,8 @@ class LeftNav extends StatelessWidget {
             dense: true,
             selected: isSelected,
             // Subtle fill derived from unit accent (no deprecated withOpacity)
-            selectedTileColor: UnitColors.selectionFill(accent),
+            selectedTileColor: UnitColors.selectionFill(selectedBg),
+            tileColor: isSelected ? selectedBg : null, // keeps the color even if theme ignores selectedTileColor
             selectedColor: kColorRed,
              // A slim accent stripe helps at-a-glance staging
             leading: Container(
@@ -55,8 +58,23 @@ class LeftNav extends StatelessWidget {
             textColor: kColorRed,
             title: Text(
               'Unit ${index + 1}: ${lessons[index].title}',
-              style: const TextStyle(fontWeight: FontWeight.w700),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? (selectedBg.computeLuminance() > 0.5 ? kColorRed : kColorGreen) : null,
+                ),
               ),
+              // optional border + rounded look for a clearer “pill” selection
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: isSelected
+                    ? BorderSide(color: UnitColors.accent(index).withValues(alpha: 0.9), width: 1.2)
+                    : BorderSide.none,
+              ),
+                // nicer hover focus (desktop/web)
+              hoverColor: UnitColors.hoverShade(accent, isSelected: isSelected),
+              focusColor: UnitColors.hoverShade(accent, isSelected: isSelected),
             onTap: () => onSelect(index),
           );
         },

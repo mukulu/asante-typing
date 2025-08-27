@@ -22,6 +22,18 @@ class UnitColors {
     return _darken(kColorYellow, 0.36);
   }
 
+  /// Darken a color by blending some black on top (amount ∈ [0,1]).
+  static Color darken(Color base, [double amount = 0.16]) {
+    return Color.alphaBlend(Colors.black.withValues(alpha: amount), base);
+  }
+
+  /// Hover/focus overlay color that is darker than the base.
+  static Color hoverShade(Color base, {required bool isSelected}) {
+    // Slightly darker when already selected
+    final amt = isSelected ? 0.24 : 0.12;
+    return Color.alphaBlend(Colors.black.withValues(alpha: amt), base);
+  }
+
   /// A very light fill for selected/hover surfaces.
   static Color selectionFill(Color base, {double alpha = 0.18}) =>
       base.withValues(alpha: alpha);
