@@ -5,42 +5,52 @@
 Typing-lesson cleaner
 
 Stage 1: Normalize non-keyboard punctuation to ASCII equivalents.
- - Curly quotes -> straight
- - En/em dashes -> hyphen
- - Minus sign -> hyphen
- - Ellipsis -> "..."
- - Full-width punctuation -> ASCII
- - NO-BREAK / thin spaces -> normal space
- - Zero-width characters removed
- - Special rule: for Units 1–24, map back-tick ` -> single quote '.
-                 for Units >=25, keep back-tick as is.
-
-Stage 2: Enforce per-unit allowed characters from char_rules.txt.
- - Any character not in the allowed set for that unit (plus whitespace)
-   is replaced with a randomly chosen character from that unit's allowed set.
- - Whitespace characters are always preserved.
-
-Inputs:
- - char_rules.txt in working directory
- - UNITS_JSON variable below (paste your units.json here).
-   If UNITS_JSON is None, the script will try to read ./units.json
-
-Outputs:
- - Prints cleaned JSON to stdout
- - Writes clean_units.json
- - Prints a summary of forbidden characters replaced
+Stage 2: Enforce per-unit allowed characters (hardcoded rules).
 """
 
-import json, os, re, sys, secrets
-from typing import Dict, List, Union, Tuple, Set, Any
+import json, os, secrets, sys
+from typing import Dict, List, Union, Tuple, Set
 from collections import defaultdict
 
 # ===================== USER-PASTE AREA =====================
 UNITS_JSON: Union[dict, list, None] = None
 # =================== END USER-PASTE AREA ===================
 
-CHAR_RULES_PATH = "char_rules.txt"
 OUTPUT_PATH = "clean_units.json"
+
+# ---------------- HARD-CODED CHAR RULES --------------------
+ALL_UNITS_ALLOWED: Set[str] = set("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&'()*+,-./;=@^_`~")
+
+PER_UNIT_ALLOWED: Dict[int, Set[str]] = {
+    1: set("adfjkls;"),
+    2: set("adfjklrsu;"),
+    3: set("adfjklmrsuv;"),
+    4: set("adefijklmrsuv;"),
+    5: set("acdefijklmrsuv,;"),
+    6: set("acdefghijklmrsuv,;"),
+    7: set("acdefghijklmrstuvy,;"),
+    8: set("abcdefghijklmnrstuvy,;"),
+    9: set("abcdefghijklmnorstuvwy,;"),
+    10: set("abcdefghijklmnorstuvwxy,.;"),
+    11: set("abcdefghijklmnopqrstuvwxy,.;"),
+    12: set("abcdefghijklmnopqrstuvwxyz,./;"),
+    13: set("abcdefghijklmnopqrstuvwxyz',./;"),
+    14: set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;"),
+    15: set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;"),
+    16: set("58abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;"),
+    17: set("4589abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;"),
+    18: set("456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;"),
+    19: set("03456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;"),
+    20: set("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;"),
+    21: set("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;"),
+    22: set("!#$@0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;"),
+    23: set("!#$&*()@0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;"),
+    24: set("!#$&*()@0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;"),
+    25: set("!#$%&()*+-./0123456789:=@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{}~',;"),
+    26: ALL_UNITS_ALLOWED,
+    27: ALL_UNITS_ALLOWED,
+}
+# ------------------------------------------------------------
 
 # Stage 1 mapping
 NONKEYBOARD_MAP_SINGLE = {
@@ -68,21 +78,6 @@ def normalize_text(raw: str, unit_index: int) -> str:
     if unit_index <= 24:
         text = text.replace("`", "'")
     return text
-
-def parse_char_rules(path: str) -> Dict[int, Set[str]]:
-    if not os.path.exists(path):
-        sys.exit(f"[ERROR] '{path}' not found.")
-    with open(path, "r", encoding="utf-8") as f:
-        data = f.read()
-    m = re.search(r"ALL_UNITS_ALLOWED:\s*([^\n\r]+)", data)
-    all_units_allowed = set(m.group(1).strip()) if m else set()
-    per_unit_allowed = {}
-    unit_line_re = re.compile(r"-\s*Unit\s+(\d+)[^|]*\|\s*allowed_upto='([^']*)'")
-    for um in unit_line_re.finditer(data):
-        idx = int(um.group(1))
-        allowed_set = set(ch for ch in um.group(2) if ch in all_units_allowed)
-        per_unit_allowed[idx] = allowed_set
-    return per_unit_allowed
 
 def iter_units_list(units_root: Union[dict, list]) -> List[dict]:
     if isinstance(units_root, list):
@@ -127,12 +122,11 @@ def clean_units(units_root: Union[dict, list], per_unit_allowed: Dict[int, Set[s
     return cleaned_units[0], summary
 
 def main():
-    per_unit_allowed = parse_char_rules(CHAR_RULES_PATH)
     root = UNITS_JSON
     if root is None:
         with open("units.json","r",encoding="utf-8") as fh:
             root = json.load(fh)
-    cleaned, summary = clean_units(root, per_unit_allowed)
+    cleaned, summary = clean_units(root, PER_UNIT_ALLOWED)
     with open(OUTPUT_PATH,"w",encoding="utf-8") as out_f:
         json.dump(cleaned,out_f,ensure_ascii=False,indent=2)
     json.dump(cleaned, sys.stdout, ensure_ascii=False, indent=2); print()
