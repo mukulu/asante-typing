@@ -4,8 +4,10 @@
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>
 #endif
+#include <gdk-pixbuf/gdk-pixbuf.h>   // <-- NEW: needed to load PNG at runtime
 
 #include "flutter/generated_plugin_registrant.h"
+
 
 struct _MyApplication {
   GtkApplication parent_instance;

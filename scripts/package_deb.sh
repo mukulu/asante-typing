@@ -109,9 +109,7 @@ mkdir -p "$DEB_OUT"
 chmod -R ug-s "$WORK/DEBIAN"
 find "$WORK/DEBIAN" -type d -exec chmod 0755 {} \;
 # control, copyright, conffiles, etc. must be readable (0644)
-find "$WORK/DEBIAN" -maxdepth 
-
-1 -type f -not -name 'preinst' -not -name 'postinst' -not -name 'prerm' -not -name 'postrm' -exec chmod 0644 {} \;
+find "$WORK/DEBIAN" -maxdepth 1 -type f -not -name 'preinst' -not -name 'postinst' -not -name 'prerm' -not -name 'postrm' -exec chmod 0644 {} \;
 # Maintainer scripts must be executable (0755) if present
 for f in preinst postinst prerm postrm; do
   [ -f "$WORK/DEBIAN/$f" ] && chmod 0755 "$WORK/DEBIAN/$f"
