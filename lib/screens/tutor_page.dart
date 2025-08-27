@@ -2,15 +2,19 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:asante_typing/models/units.dart';
+import 'package:asante_typing/services/custom_lessons_service.dart';
 import 'package:asante_typing/state/zoom_scope.dart';
 import 'package:asante_typing/theme/app_colors.dart';
+import 'package:asante_typing/utils/pick_text.dart' as picktext;
 import 'package:asante_typing/utils/typing_utils.dart';
+import 'package:asante_typing/widgets/custom_lessons_panel.dart';
 import 'package:asante_typing/widgets/footer.dart';
 import 'package:asante_typing/widgets/left_nav.dart';
 import 'package:asante_typing/widgets/metrics_panel.dart';
 import 'package:asante_typing/widgets/subunit_chips.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+
 
 /// The main page of the typing tutor. Displays a left navigation pane of
 /// units and a content area for guides and practice.
@@ -22,6 +26,17 @@ class TutorPage extends StatefulWidget {
 }
 
 class _TutorPageState extends State<TutorPage> {
+
+  /// Stores custom lessons loaded from persistence. Each entry contains a
+  /// `title` and `content` string. This list is used to populate the
+  /// subunits of the special "Custom lessons" unit appended to the end of
+  /// [_data!.main].
+  List<Map<String, String>> _customLessons = [];
+
+  /// Index in [_data!.main] corresponding to the custom lessons unit, if
+  /// present. Set in [_loadUnits] after loading lessons. If `null`, no
+  /// custom unit has been appended yet.
+  int? _customUnitIndex;
 
   UnitsData? _data;
   int _selectedUnit = 0;
@@ -60,7 +75,33 @@ class _TutorPageState extends State<TutorPage> {
     final raw = await rootBundle.loadString('assets/units.json');
     final jsonMap = json.decode(raw) as Map<String, dynamic>;
     final data = UnitsData.fromJson(jsonMap);
-    // Select first unit and its first subunit by default.
+    // Load persisted custom lessons and append as a new unit.
+    final lessons = await CustomLessonsService.loadLessons();
+    _customLessons = List<Map<String, String>>.from(lessons);
+    // Build subunits map for the custom unit. Preserve order.
+    final customSubunits = <String, String>{};
+    for (final lesson in _customLessons) {
+      final title = lesson['title'] ?? '';
+      final content = lesson['content'] ?? '';
+      if (title.isNotEmpty) {
+        customSubunits[title] = content;
+      }
+    }
+    // Always append the "Custom lessons" unit (even if empty) so that users
+    // can add lessons later. Use a simple guide that describes its purpose.
+    final customLesson = Lesson(
+      title: 'Custom lessons',
+      guide:
+          'Create your own passages for practice. Use the buttons below to add, edit, delete or bulk upload lessons.',
+      subunits: customSubunits,
+      images: const [],
+    );
+    data.main.add(customLesson);
+    _customUnitIndex = data.main.length - 1;
+
+    // Select first unit and its first subunit by default (unit 0). Avoid
+    // selecting a subunit for the custom unit here; it will be set when
+    // the user navigates to it.
     String? initialSub;
     if (data.main.isNotEmpty) {
       final firstLesson = data.main[_selectedUnit];
@@ -294,19 +335,19 @@ class _TutorPageState extends State<TutorPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Subunit chips
-                        IconTheme.merge(
-                          data: IconThemeData(size: 18.0 * zoomScale),
-                          child: SubunitChips(
-                            keys: selectedLesson.subunits.keys,
-                            selectedKey: _selectedSubunit,
+                        // Subunit chips or custom lessons panel
+                        if (selectedLesson.title == 'Custom lessons')
+                          CustomLessonsPanel(
+                            lessons: _customLessons,
+                            selectedTitle: _selectedSubunit,
                             accent: accent,
-                            unitIndex: _selectedUnit,
-                            onSelect: (key) {
+                            onSelect: (title) {
                               setState(() {
-                                _selectedSubunit = key;
-                                _lastSubunitPerUnit[_selectedUnit] = key;
-                                // Reset session state.
+                                _selectedSubunit = title;
+                                if (_customUnitIndex != null) {
+                                  _lastSubunitPerUnit[_customUnitIndex!] = title;
+                                }
+                                // Reset session state for new selection.
                                 _controller.clear();
                                 _startTime = null;
                                 _ticker?.cancel();
@@ -316,8 +357,37 @@ class _TutorPageState extends State<TutorPage> {
                                 _sessionCompleted = false;
                               });
                             },
+                            onAdd: () {
+                              _showAddOrEditLesson(null);
+                            },
+                            onEdit: _showAddOrEditLesson,
+                            onDelete: _confirmDeleteLesson,
+                            onBulkUpload: _showBulkUploadDialog,
+                          )
+                        else
+                          IconTheme.merge(
+                            data: IconThemeData(size: 18.0 * zoomScale),
+                            child: SubunitChips(
+                              keys: selectedLesson.subunits.keys,
+                              selectedKey: _selectedSubunit,
+                              accent: accent,
+                              unitIndex: _selectedUnit,
+                              onSelect: (key) {
+                                setState(() {
+                                  _selectedSubunit = key;
+                                  _lastSubunitPerUnit[_selectedUnit] = key;
+                                  // Reset session state.
+                                  _controller.clear();
+                                  _startTime = null;
+                                  _ticker?.cancel();
+                                  _ticker = null;
+                                  _errors = 0;
+                                  _finished = false;
+                                  _sessionCompleted = false;
+                                });
+                              },
+                            ),
                           ),
-                        ),
                         const SizedBox(height: 12),
                         // Guide image
                         if (diagramAsset != null) ...[
@@ -434,6 +504,335 @@ class _TutorPageState extends State<TutorPage> {
       TextSpan(children: spans),
       style: const TextStyle(fontSize: 20, color: Colors.black),
     );
+  }
+
+  /// Saves the current [_customLessons] list to persistent storage.
+  Future<void> _saveCustomLessons() async {
+    await CustomLessonsService.saveLessons(_customLessons);
+  }
+
+  /// Rebuilds the custom lessons unit within [_data] based on the
+  /// current [_customLessons] list. This method also ensures that the
+  /// selected subunit for the custom unit remains valid (or is reset to
+  /// the first available). Call this after adding, editing or deleting a
+  /// custom lesson.
+  void _updateCustomUnit() {
+    if (_data == null || _customUnitIndex == null) return;
+    final map = <String, String>{};
+    for (final lesson in _customLessons) {
+      final title = lesson['title'] ?? '';
+      final content = lesson['content'] ?? '';
+      if (title.isNotEmpty) {
+        map[title] = content;
+      }
+    }
+    // Replace the custom unit with updated subunits but keep the guide text.
+    final oldLesson = _data!.main[_customUnitIndex!];
+    _data!.main[_customUnitIndex!] = Lesson(
+      title: oldLesson.title,
+      guide: oldLesson.guide,
+      subunits: map,
+      images: const [],
+    );
+    // Adjust selected subunit when necessary.
+    if (_selectedUnit == _customUnitIndex) {
+      if (_selectedSubunit == null || !map.containsKey(_selectedSubunit)) {
+        _selectedSubunit = map.isNotEmpty ? map.keys.first : null;
+      }
+      if (_customUnitIndex != null && _selectedSubunit != null) {
+        _lastSubunitPerUnit[_customUnitIndex!] = _selectedSubunit!;
+      }
+    }
+  }
+
+  /// Opens a dialog allowing the user to add a new custom lesson or edit
+  /// an existing one. When [index] is `null`, a new lesson is created;
+  /// otherwise the lesson at [index] is modified. After saving, the
+  /// lessons list is persisted and the UI is refreshed.
+  void _showAddOrEditLesson(int? index) {
+    final isEdit = index != null;
+    final originalTitle = isEdit ? (_customLessons[index]['title'] ?? '') : '';
+    final originalContent = isEdit ? (_customLessons[index]['content'] ?? '') : '';
+    final titleController = TextEditingController(text: originalTitle);
+    final contentController = TextEditingController(text: originalContent);
+
+    bool hasUnsavedChanges() {
+      return titleController.text.trim() != originalTitle.trim() ||
+          contentController.text.trim() != originalContent.trim();
+    }
+
+    void maybeDiscard(VoidCallback onDiscard) {
+      if (!hasUnsavedChanges()) {
+        onDiscard();
+        return;
+      }
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) {
+          return AlertDialog(
+            title: const Text('Discard changes?'),
+            content: const Text('You have unsaved changes. Do you want to discard them?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Keep editing'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  onDiscard();
+                },
+                child: const Text('Discard'),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
+    showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (dialogCtx, setStateDialog) {
+            return AlertDialog(
+              title: Text(isEdit ? 'Edit lesson' : 'Add lesson'),
+              content: SizedBox(
+                width: 400,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: titleController,
+                        decoration: const InputDecoration(labelText: 'Title'),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: contentController,
+                        decoration: const InputDecoration(labelText: 'Passage'),
+                        minLines: 3,
+                        maxLines: null,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    maybeDiscard(() {
+                      Navigator.of(dialogCtx).pop(false);
+                    });
+                  },
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final trimmedTitle = titleController.text.trim();
+                    final trimmedContent = contentController.text;
+                    if (trimmedTitle.isEmpty || trimmedContent.isEmpty) {
+                      // Require non‑empty fields; keep editing.
+                      return;
+                    }
+                    Navigator.of(dialogCtx).pop(true);
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    ).then((save) {
+      if (save != true) return;
+      final newLesson = <String, String>{
+        'title': titleController.text.trim(),
+        'content': contentController.text,
+      };
+      setState(() {
+        if (isEdit) {
+          _customLessons[index] = newLesson;
+        } else {
+          _customLessons.add(newLesson);
+        }
+        _updateCustomUnit();
+        _saveCustomLessons();
+        _selectedSubunit = newLesson['title'];
+        if (_customUnitIndex != null && _selectedSubunit != null) {
+          _lastSubunitPerUnit[_customUnitIndex!] = _selectedSubunit!;
+        }
+        // Reset typing session for the new selection.
+        _controller.clear();
+        _startTime = null;
+        _ticker?.cancel();
+        _ticker = null;
+        _errors = 0;
+        _finished = false;
+        _sessionCompleted = false;
+      });
+    });
+  }
+
+  /// Prompts the user to confirm deletion of the custom lesson at [index].
+  /// If confirmed, the lesson is removed, persisted and the UI is updated.
+  void _confirmDeleteLesson(int index) {
+    final lessonTitle = _customLessons[index]['title'] ?? '';
+    showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Delete lesson'),
+          content: Text('Are you sure you want to delete "$lessonTitle"?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    ).then((confirm) {
+      if (confirm != true) return;
+      setState(() {
+        final removed = _customLessons.removeAt(index);
+        // Update selected subunit if the removed lesson was selected.
+        if (_selectedSubunit == removed['title']) {
+          _selectedSubunit = _customLessons.isNotEmpty ? _customLessons.first['title'] : null;
+        }
+        _updateCustomUnit();
+        _saveCustomLessons();
+        if (_customUnitIndex != null && _selectedSubunit != null) {
+          _lastSubunitPerUnit[_customUnitIndex!] = _selectedSubunit!;
+        }
+        // Reset typing session for deletion.
+        _controller.clear();
+        _startTime = null;
+        _ticker?.cancel();
+        _ticker = null;
+        _errors = 0;
+        _finished = false;
+        _sessionCompleted = false;
+      });
+    });
+  }
+
+  /// Shows a dialog allowing the user to paste or upload multiple passages
+  /// separated by newlines. Each line will become a new lesson. Default
+  /// titles will be generated as "Paragraph 01", "Paragraph 02", etc.
+  void _showBulkUploadDialog() {
+    final textController = TextEditingController();
+
+    Future<void> pickFile() async {
+      final result = await picktext.pickTextFile();
+      if (result != null) {
+        textController.text = result;
+      }
+    }
+
+
+
+    showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (dialogCtx, setStateDialog) {
+            return AlertDialog(
+              title: const Text('Bulk upload lessons'),
+              content: SizedBox(
+                width: 400,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: textController,
+                        decoration: const InputDecoration(
+                          labelText: 'Enter passages (one per line)',
+                          alignLabelWithHint: true,
+                        ),
+                        minLines: 6,
+                        maxLines: null,
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: pickFile,
+                            icon: const Icon(Icons.folder_open),
+                            label: const Text('Choose file'),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Upload a .txt file or paste passages above.',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogCtx).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    // Do not allow upload if no content provided.
+                    if (textController.text.trim().isEmpty) return;
+                    Navigator.of(dialogCtx).pop(true);
+                  },
+                  child: const Text('Upload'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    ).then((confirm) {
+      if (confirm != true) return;
+      final lines = textController.text.split(RegExp('[\r\n]+'));
+      // Determine starting number for generated titles. Use count of existing lessons + 1.
+      var indexStart = _customLessons.length + 1;
+      final newLessons = <Map<String, String>>[];
+      for (final line in lines) {
+        final trimmed = line.trim();
+        if (trimmed.isEmpty) continue;
+        final label = 'Paragraph ${indexStart.toString().padLeft(2, '0')}';
+        newLessons.add({'title': label, 'content': trimmed});
+        indexStart++;
+      }
+      if (newLessons.isEmpty) return;
+      setState(() {
+        _customLessons.addAll(newLessons);
+        _updateCustomUnit();
+        _saveCustomLessons();
+        // Select the first newly added lesson if nothing is selected.
+        _selectedSubunit ??= newLessons.first['title'];
+        if (_customUnitIndex != null && _selectedSubunit != null) {
+          _lastSubunitPerUnit[_customUnitIndex!] = _selectedSubunit!;
+        }
+        // Reset typing session for new selection.
+        _controller.clear();
+        _startTime = null;
+        _ticker?.cancel();
+        _ticker = null;
+        _errors = 0;
+        _finished = false;
+        _sessionCompleted = false;
+      });
+    });
   }
 
 }
