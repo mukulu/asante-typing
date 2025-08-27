@@ -8,6 +8,7 @@
 .melos_tool/            # if you use melos
 build/
 coverage/
+dist
 
 # IntelliJ / Android Studio / VSCode
 .idea/
