@@ -5,6 +5,13 @@ VERSION="${1:-0.0.0}"
 APP_NAME="Asante Typing"
 APP_BIN_NAME="asante-typing"  # launcher name
 BUNDLE_DIR="build/linux/x64/release/bundle"
+ICON_SRC="assets/icon/app_icon.png"  # Path to the icon in the repository
+
+# Check if icon exists
+if [[ ! -f "$ICON_SRC" ]]; then
+  echo "Icon file not found: $ICON_SRC" >&2
+  exit 1
+fi
 
 if [[ ! -d "$BUNDLE_DIR" ]]; then
   echo "Bundle not found: $BUNDLE_DIR" >&2
@@ -13,14 +20,14 @@ fi
 
 WORK="dist/linux/pkg"
 DEB_OUT="dist/linux"
-mkdir -p "$WORK/DEBIAN" "$WORK/usr/bin" "$WORK/opt/$APP_BIN_NAME" "$WORK/usr/share/applications"
+mkdir -p "$WORK/DEBIAN" "$WORK/usr/bin" "$WORK/opt/$APP_BIN_NAME" "$WORK/usr/share/applications" "$WORK/usr/share/pixmaps"
 
 if [[ ! -d "$WORK/DEBIAN" ]]; then
   echo "Failed to create directory: $WORK/DEBIAN" >&2
   exit 1
 fi
 
-# copy built files
+# Copy built files
 cp -a "$BUNDLE_DIR/." "$WORK/opt/$APP_BIN_NAME/"
 
 if [[ ! -f "$WORK/opt/$APP_BIN_NAME/asante_typing" ]]; then
@@ -28,7 +35,11 @@ if [[ ! -f "$WORK/opt/$APP_BIN_NAME/asante_typing" ]]; then
   exit 1
 fi
 
-# simple launcher wrapper
+# Copy icon
+cp "$ICON_SRC" "$WORK/usr/share/pixmaps/$APP_BIN_NAME.png"
+chmod 0644 "$WORK/usr/share/pixmaps/$APP_BIN_NAME.png"
+
+# Simple launcher wrapper
 cat > "$WORK/usr/bin/$APP_BIN_NAME" <<'EOF'
 #!/usr/bin/env bash
 DIR="/opt/asante-typing"
@@ -41,20 +52,20 @@ cat > "$WORK/usr/share/applications/${APP_BIN_NAME}.desktop" <<EOF
 [Desktop Entry]
 Name=$APP_NAME
 Exec=$APP_BIN_NAME
-Icon=
+Icon=$APP_BIN_NAME
 Type=Application
 Categories=Utility;Education;
 Terminal=false
 EOF
 
-# control file
+# Control file
 cat > "$WORK/DEBIAN/control" <<EOF
 Package: ${APP_BIN_NAME}
 Version: ${VERSION}
 Section: utils
 Priority: optional
 Architecture: amd64
-Maintainer: John Francis Mukulu SJ <johnfmukulu@gmail.com>
+Maintainer: John Francis Mukulu SJ <john.f.mukulu@gmail.com>
 Homepage: https://mukulu.org/asante-typing
 Vcs-Git: https://github.com/mukulu/asante-typing.git
 Description: $APP_NAME - typing tutor
@@ -64,11 +75,11 @@ Description: $APP_NAME - typing tutor
  to enhance touch-typing skills. Ideal for beginners and advanced users alike.
 EOF
 
-# copyright file
+# Copyright file
 cat > "$WORK/DEBIAN/copyright" <<EOF
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: $APP_NAME
-Upstream-Contact: John Francis Mukulu SJ <noreply@example.com>
+Upstream-Contact: John Francis Mukulu SJ <john.f.mukulu@gmail.com>
 Source: https://github.com/mukulu/asante-typing
 
 Files: *
@@ -98,7 +109,9 @@ mkdir -p "$DEB_OUT"
 chmod -R ug-s "$WORK/DEBIAN"
 find "$WORK/DEBIAN" -type d -exec chmod 0755 {} \;
 # control, copyright, conffiles, etc. must be readable (0644)
-find "$WORK/DEBIAN" -maxdepth 1 -type f -not -name 'preinst' -not -name 'postinst' -not -name 'prerm' -not -name 'postrm' -exec chmod 0644 {} \;
+find "$WORK/DEBIAN" -maxdepth 
+
+1 -type f -not -name 'preinst' -not -name 'postinst' -not -name 'prerm' -not -name 'postrm' -exec chmod 0644 {} \;
 # Maintainer scripts must be executable (0755) if present
 for f in preinst postinst prerm postrm; do
   [ -f "$WORK/DEBIAN/$f" ] && chmod 0755 "$WORK/DEBIAN/$f"

@@ -22,6 +22,7 @@ dev_dependencies:
   dart_code_metrics: ^5.7.6
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.13.1
   golden_toolkit: ^0.15.0
   mocktail: ^1.0.0
   very_good_analysis: ^9.0.0
@@ -32,3 +33,7 @@ flutter:
     - assets/units.json
     - assets/img/
 
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/img/icon.png"
