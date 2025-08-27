@@ -15,7 +15,7 @@ class Footer extends StatelessWidget {
       color: kColorGreen,
       alignment: Alignment.center,
       child: const Text(
-        'Asante Typing Tutor © MUKULU SJ',
+        'Asante Typing Tutor © John Francis Mukulu SJ',
         textAlign: TextAlign.center,
         style: TextStyle(
           color: kColorYellow,
