@@ -321,13 +321,21 @@ class _TutorPageState extends State<TutorPage> {
                         const SizedBox(height: 12),
                         // Guide image
                         if (diagramAsset != null) ...[
-                          Center(
-                            child: Image.asset(
-                              diagramAsset,
-                              height: _selectedSubunit == null ? 150 : 120,
-                              fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => const SizedBox(),
-                            ),
+                          Builder(
+                            builder: (context) {
+                              final s = ZoomScope.of(context).scale;          // <- zoom value (1.0 = normal)
+                              final base = _selectedSubunit == null ? 180.0 : 145.0; // <- bumped up a bit from 150/120
+                              final imgHeight = base * s;                     // <- responsive height
+
+                              return Center(
+                                child: Image.asset(
+                                  diagramAsset ?? '',
+                                  height: imgHeight,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (_, __, ___) => const SizedBox(),
+                                ),
+                              );
+                            },
                           ),
                           const SizedBox(height: 8),
                         ],
