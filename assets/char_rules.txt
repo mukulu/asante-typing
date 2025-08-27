@@ -1,0 +1,33 @@
+NOTE: Whitespace (space, tab, CR, LF) is always allowed and omitted from the sets below.
+
+ALL_UNITS_ALLOWED: 0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&'()*+,-./;=@^_`~
+
+PER-UNIT ALLOWED SETS (introduced vs cumulative-up-to-this-unit):
+- Unit 01 'asdf jkl;': introduced='adfjkls;' | allowed_upto='adfjkls;'
+- Unit 02 'ru': introduced='ru' | allowed_upto='adfjklrsu;'
+- Unit 03 'vm': introduced='mv' | allowed_upto='adfjklmrsuv;'
+- Unit 04 'ei': introduced='ei' | allowed_upto='adefijklmrsuv;'
+- Unit 05 'c,': introduced='c,' | allowed_upto='acdefijklmrsuv,;'
+- Unit 06 'gh': introduced='gh' | allowed_upto='acdefghijklmrsuv,;'
+- Unit 07 'ty': introduced='ty' | allowed_upto='acdefghijklmrstuvy,;'
+- Unit 08 'bn': introduced='bn' | allowed_upto='abcdefghijklmnrstuvy,;'
+- Unit 09 'wo': introduced='ow' | allowed_upto='abcdefghijklmnorstuvwy,;'
+- Unit 10 'x.': introduced='x.' | allowed_upto='abcdefghijklmnorstuvwxy,.;'
+- Unit 11 'qp': introduced='pq' | allowed_upto='abcdefghijklmnopqrstuvwxy,.;'
+- Unit 12 'z/': introduced='z/' | allowed_upto='abcdefghijklmnopqrstuvwxyz,./;'
+- Unit 13 ''':  introduced='''  | allowed_upto='abcdefghijklmnopqrstuvwxyz',./;'
+- Unit 14 'Shift': introduced='ABCDEFGHIJKLMNOPQRSTUVWXYZ' | allowed_upto='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;'
+- Unit 15 'Practice Passages': introduced='' | allowed_upto='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;'
+- Unit 16 '58': introduced='58' | allowed_upto='58abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;'
+- Unit 17 '49': introduced='49' | allowed_upto='4589abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;'
+- Unit 18 '67': introduced='67' | allowed_upto='456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;'
+- Unit 19 '30': introduced='03' | allowed_upto='03456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;'
+- Unit 20 '12': introduced='12' | allowed_upto='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;'
+- Unit 21 'Number Passages': introduced='' | allowed_upto='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;'
+- Unit 22 '!@#$': introduced='!#$@' | allowed_upto='!#$@0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;'
+- Unit 23 '&*()': introduced='&*()' | allowed_upto='!#$&*()@0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;'
+- Unit 24 '!@#$&*()': introduced='!#$&*()@' | allowed_upto='!#$&*()@0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',./;'
+- Unit 25 '`-=~%^_+': introduced='%-=^_`+~' | allowed_upto='!#$%&()*+-./0123456789:=@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{}~',;'
+  (display note: order above is sorted by class & codepoint; brackets/braces weren't actually added—see ALL_UNITS_ALLOWED)
+- Unit 26 'Chars passages': introduced='' | allowed_upto='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&'()*+,-./;=@^_`~'
+- Unit 27 'Fluidity practice': introduced='' | allowed_upto='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&'()*+,-./;=@^_`~'
