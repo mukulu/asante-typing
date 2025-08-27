@@ -1,7 +1,11 @@
 # Flutter/Dart build outputs
+.pub/
 .dart_tool/
 .packages
-.pub/
+.flutter-plugins
+.flutter-plugins-dependencies
+.flutter-plugins-last-check
+.melos_tool/            # if you use melos
 build/
 coverage/
 
