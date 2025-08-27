@@ -9,7 +9,7 @@ import 'package:file_picker/file_picker.dart';
 Future<String?> pickTextFile() async {
   final result = await FilePicker.platform.pickFiles(
     type: FileType.custom,
-    allowedExtensions: const ['txt'],
+    allowedExtensions: const ['txt','csv'],
     withData: true,           // ensures bytes on Web; often on desktop/mobile too
     withReadStream: true,     // desktop/mobile stream fallback when bytes are null
   );

@@ -5,6 +5,7 @@ import 'package:asante_typing/models/units.dart';
 import 'package:asante_typing/services/custom_lessons_service.dart';
 import 'package:asante_typing/state/zoom_scope.dart';
 import 'package:asante_typing/theme/app_colors.dart';
+import 'package:asante_typing/utils/csv_two_col.dart';
 import 'package:asante_typing/utils/pick_text.dart' as picktext;
 import 'package:asante_typing/utils/typing_utils.dart';
 import 'package:asante_typing/widgets/custom_lessons_panel.dart';
@@ -338,6 +339,7 @@ class _TutorPageState extends State<TutorPage> {
                         // Subunit chips or custom lessons panel
                         if (selectedLesson.title == 'Custom lessons')
                           CustomLessonsPanel(
+                            onResetAll: _confirmResetAll,
                             lessons: _customLessons,
                             selectedTitle: _selectedSubunit,
                             accent: accent,
@@ -597,10 +599,12 @@ class _TutorPageState extends State<TutorPage> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (dialogCtx, setStateDialog) {
+            final size = MediaQuery.of(ctx).size;
             return AlertDialog(
               title: Text(isEdit ? 'Edit lesson' : 'Add lesson'),
               content: SizedBox(
-                width: 400,
+                width: size.width * 0.80,
+                height: size.height * 0.80,
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -723,107 +727,44 @@ class _TutorPageState extends State<TutorPage> {
     });
   }
 
-  /// Shows a dialog allowing the user to paste or upload multiple passages
-  /// separated by newlines. Each line will become a new lesson. Default
-  /// titles will be generated as "Paragraph 01", "Paragraph 02", etc.
-  void _showBulkUploadDialog() {
-    final textController = TextEditingController();
-
-    Future<void> pickFile() async {
-      final result = await picktext.pickTextFile();
-      if (result != null) {
-        textController.text = result;
-      }
-    }
-
-
-
+  void _confirmResetAll() {
+    if (_customLessons.isEmpty) return;
+  
     showDialog<bool>(
       context: context,
-      barrierDismissible: false,
       builder: (ctx) {
-        return StatefulBuilder(
-          builder: (dialogCtx, setStateDialog) {
-            return AlertDialog(
-              title: const Text('Bulk upload lessons'),
-              content: SizedBox(
-                width: 400,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextField(
-                        controller: textController,
-                        decoration: const InputDecoration(
-                          labelText: 'Enter passages (one per line)',
-                          alignLabelWithHint: true,
-                        ),
-                        minLines: 6,
-                        maxLines: null,
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: pickFile,
-                            icon: const Icon(Icons.folder_open),
-                            label: const Text('Choose file'),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Upload a .txt file or paste passages above.',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogCtx).pop(false),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    // Do not allow upload if no content provided.
-                    if (textController.text.trim().isEmpty) return;
-                    Navigator.of(dialogCtx).pop(true);
-                  },
-                  child: const Text('Upload'),
-                ),
-              ],
-            );
-          },
+        return AlertDialog(
+          title: const Text('Delete ALL custom lessons?'),
+          content: Text(
+            'This will permanently remove ${_customLessons.length} custom '
+            'lesson(s) and leave the list empty. Are you sure?'
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Delete all'),
+            ),
+          ],
         );
       },
-    ).then((confirm) {
-      if (confirm != true) return;
-      final lines = textController.text.split(RegExp('[\r\n]+'));
-      // Determine starting number for generated titles. Use count of existing lessons + 1.
-      var indexStart = _customLessons.length + 1;
-      final newLessons = <Map<String, String>>[];
-      for (final line in lines) {
-        final trimmed = line.trim();
-        if (trimmed.isEmpty) continue;
-        final label = 'Paragraph ${indexStart.toString().padLeft(2, '0')}';
-        newLessons.add({'title': label, 'content': trimmed});
-        indexStart++;
-      }
-      if (newLessons.isEmpty) return;
+    ).then((yes) {
+      if (yes != true) return;
       setState(() {
-        _customLessons.addAll(newLessons);
+        _customLessons.clear();
         _updateCustomUnit();
         _saveCustomLessons();
-        // Select the first newly added lesson if nothing is selected.
-        _selectedSubunit ??= newLessons.first['title'];
-        if (_customUnitIndex != null && _selectedSubunit != null) {
-          _lastSubunitPerUnit[_customUnitIndex!] = _selectedSubunit!;
+  
+        _selectedSubunit = null;
+        if (_customUnitIndex != null) {
+          _lastSubunitPerUnit.remove(_customUnitIndex);
         }
-        // Reset typing session for new selection.
+  
+        // reset typing session
         _controller.clear();
         _startTime = null;
         _ticker?.cancel();
@@ -834,5 +775,192 @@ class _TutorPageState extends State<TutorPage> {
       });
     });
   }
+
+  /// Shows a dialog allowing the user to paste or upload multiple passages
+  /// separated by newlines. Each line will become a new lesson. Default
+  /// titles will be generated as "Paragraph 01", "Paragraph 02", etc.
+  void _showBulkUploadDialog() {
+    final textController = TextEditingController();
+    List<MapEntry<String, String>>? csvRows; // null => not a valid 2-col CSV
+
+    showDialog<List<Map<String, String>>?>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        final size = MediaQuery.of(ctx).size;
+
+        return StatefulBuilder(
+          builder: (dialogCtx, setStateDialog) {
+            // Local helper so we can re-parse on text change or file load
+            void reparse() {
+              csvRows = TwoColCsv.tryParse(textController.text);
+              setStateDialog(() {}); // refresh banner
+            }
+
+            Future<void> pickFile() async {
+              final result = await picktext.pickTextFile();
+              if (result != null) {
+                textController.text = result; // programmatic update
+                reparse();                    // ensure detection runs
+              }
+            }
+
+            return AlertDialog(
+              // NEW: occupy ~80% of the viewport
+              insetPadding: EdgeInsets.symmetric(
+                horizontal: size.width * 0.10,
+                vertical: size.height * 0.10,
+              ),
+              title: const Text('Bulk upload lessons'),
+              content: SizedBox(
+                width: size.width * 0.80,
+                height: size.height * 0.80,
+                child: Column(
+                  children: [
+                    // Banner: green when CSV detected, amber tip otherwise
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: (csvRows != null)
+                            ? Colors.green.withValues(alpha: 0.12)
+                            : Colors.amber.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: (csvRows != null)
+                              ? Colors.green.withValues(alpha: 0.40)
+                              : Colors.amber.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Text(
+                        (csvRows != null)
+                            ? 'Detected a two-column CSV: "Title","Passage". Each row will be imported as a lesson with its title.'
+                            : 'Tip: Paste or upload text. You can also use a two-column CSV for "Title","Passage". Each line becomes its own lesson. Avoid newlines inside cells.',
+                        style: TextStyle(
+                          color: (csvRows != null) ? Colors.green : Colors.black87,
+                          fontWeight: (csvRows != null) ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+
+                    // Big editor that grows with dialog
+                    Expanded(
+                      child: TextField(
+                        controller: textController,
+                        onChanged: (_) => reparse(),  // detect CSV on paste/type
+                        decoration: const InputDecoration(
+                          labelText: 'TIP: Paste or upload your lessons text here. You can also upload a CSV with two columns for "Title","Passage". No need for headers. Note: Each new line becomes a new lesson in the file, thus avoid newlines within paragraphs.',
+                          alignLabelWithHint: true,
+                          border: OutlineInputBorder(),
+                        ),
+                        expands: true,
+                        maxLines: null,
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    Row(
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: pickFile,
+                          icon: const Icon(Icons.folder_open),
+                          label: const Text('Choose file'),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Upload a .txt or a two-column CSV. Each row becomes a lesson.',
+                            style: TextStyle(fontSize: 12.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogCtx).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final raw = textController.text.trim();
+                    if (raw.isEmpty) return;
+
+                    // If CSV detected, build lessons from CSV rows
+                    final parsed = csvRows ?? TwoColCsv.tryParse(raw);
+                    if (parsed != null && parsed.isNotEmpty) {
+                      // Optional header skip: Title,Passage
+                      final rows = List<MapEntry<String, String>>.from(parsed);
+                      if (rows.first.key.toLowerCase() == 'title' &&
+                          rows.first.value.toLowerCase() == 'passage') {
+                        rows.removeAt(0);
+                      }
+
+                      final items = <Map<String, String>>[
+                        for (final r in rows)
+                          {
+                            'title': (r.key.trim().isEmpty) ? 'Untitled' : r.key.trim(),
+                            'content': r.value,
+                          }
+                      ];
+                      Navigator.of(dialogCtx).pop(items);
+                      return;
+                    }
+
+                    // Fallback: one line => one lesson (keep your old behavior)
+                    final lines = raw
+                        .split(RegExp(r'[\r\n]+'))
+                        .map((e) => e.trim())
+                        .where((e) => e.isNotEmpty)
+                        .toList();
+
+                    var indexStart = _customLessons.length + 1;
+                    final items = <Map<String, String>>[];
+                    for (final line in lines) {
+                      final label = 'Paragraph ${indexStart.toString().padLeft(2, '0')}';
+                      items.add({'title': label, 'content': line});
+                      indexStart++;
+                    }
+                    if (items.isEmpty) return;
+                    Navigator.of(dialogCtx).pop(items);
+                  },
+                  child: const Text('Upload'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    ).then((result) {
+      // result is List<Map<String,String>>? (null => cancelled)
+      if (result == null || result.isEmpty) return;
+
+      setState(() {
+        _customLessons.addAll(result);
+        _updateCustomUnit();
+        _saveCustomLessons();
+
+        // Select first of the new ones if nothing selected
+        _selectedSubunit ??= result.first['title'];
+        if (_customUnitIndex != null && _selectedSubunit != null) {
+          _lastSubunitPerUnit[_customUnitIndex!] = _selectedSubunit!;
+        }
+
+        // Reset typing session
+        _controller.clear();
+        _startTime = null;
+        _ticker?.cancel();
+        _ticker = null;
+        _errors = 0;
+        _finished = false;
+        _sessionCompleted = false;
+      });
+    });
+  }
+
 
 }

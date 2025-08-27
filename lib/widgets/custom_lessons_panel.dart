@@ -13,7 +13,16 @@ import 'package:flutter/material.dart';
 class CustomLessonsPanel extends StatelessWidget {
   /// Creates a [CustomLessonsPanel].
   const CustomLessonsPanel({
-    required this.lessons, required this.selectedTitle, required this.accent, required this.onSelect, required this.onAdd, required this.onEdit, required this.onDelete, required this.onBulkUpload, super.key,
+    required this.lessons, 
+    required this.selectedTitle, 
+    required this.accent, 
+    required this.onSelect, 
+    required this.onAdd, 
+    required this.onEdit, 
+    required this.onDelete, 
+    required this.onBulkUpload,
+    required this.onResetAll,
+    super.key,
   });
 
   /// The list of lessons to display. Each item is a map containing
@@ -41,18 +50,48 @@ class CustomLessonsPanel extends StatelessWidget {
 
   /// Called when the user requests to bulk upload lessons.
   final VoidCallback onBulkUpload;
+  
+  final VoidCallback onResetAll; 
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (var i = 0; i < lessons.length; i++)
-          _buildLessonChip(context, i),
-        _buildAddButton(),
-        _buildBulkUploadButton(),
+        // NEW: Always-visible tip about two-column CSV support for bulk upload.
+        _csvSupportHint(),
+
+        const SizedBox(height: 8),
+
+        // Existing chips + buttons
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (var i = 0; i < lessons.length; i++)
+              _buildLessonChip(context, i),
+            _buildAddButton(),
+            _buildBulkUploadButton(),
+            _buildResetButton(),
+          ],
+        ),
       ],
+    );
+  }
+
+  // NEW: small banner to inform users about CSV format.
+  Widget _csvSupportHint() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.12), // subtle hint tint
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Text(
+        'Tip: Bulk upload supports a two-column CSV for "Title","Passage". Each new line becomes a separate lesson.',
+        style: TextStyle(fontSize: 13),
+      ),
     );
   }
 
@@ -122,10 +161,26 @@ class CustomLessonsPanel extends StatelessWidget {
 
   /// Builds the button that triggers the bulk upload dialog.
   Widget _buildBulkUploadButton() {
-    return ElevatedButton.icon(
-      onPressed: onBulkUpload,
-      icon: const Icon(Icons.file_upload),
-      label: const Text('Bulk upload'),
+    return Tooltip(
+      message: 'Also supports two-column CSV: "Title","Passage".',
+      child: ElevatedButton.icon(
+        onPressed: onBulkUpload,
+        icon: const Icon(Icons.file_upload),
+        label: const Text('Bulk upload'),
+      ),
     );
   }
+
+  // NEW: big red â€œreset allâ€ button, disabled when list is empty
+  Widget _buildResetButton() {
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.red,
+      ),
+      onPressed: lessons.isEmpty ? null : onResetAll,
+      icon: const Icon(Icons.delete_sweep),
+      label: const Text('Reset all'),
+    );
+  }
+
 }
