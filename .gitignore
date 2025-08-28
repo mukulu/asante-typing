@@ -7,6 +7,7 @@
 .flutter-plugins-last-check
 .melos_tool/            # if you use melos
 build/
+web/
 coverage/
 dist
 
