@@ -6,6 +6,11 @@ set(EPHEMERAL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ephemeral")
 # Configuration provided via flutter tool.
 include(${EPHEMERAL_DIR}/generated_config.cmake)
 
+# Fallback if generated_config.cmake didn't set it
+if(NOT DEFINED FLUTTER_TARGET_PLATFORM OR "${FLUTTER_TARGET_PLATFORM}" STREQUAL "")
+  set(FLUTTER_TARGET_PLATFORM "linux-x64")
+endif()
+
 # TODO: Move the rest of this into files in ephemeral. See
 # https://github.com/flutter/flutter/issues/57146.
 

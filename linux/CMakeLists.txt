@@ -7,7 +7,19 @@ project(runner LANGUAGES CXX)
 set(BINARY_NAME "asante_typing")
 # The unique GTK application identifier for this application. See:
 # https://wiki.gnome.org/HowDoI/ChooseApplicationID
-set(APPLICATION_ID "com.example.asante_typing")
+ set(APPLICATION_ID "org.munkulu.asante_typing")
+
+# ---- Install desktop file and icons for system integration
+include(GNUInstallDirs)
+
+# Desktop entry
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/packaging/org.mukulu.asante_typing.desktop"
+        DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications" COMPONENT Runtime)
+
+# Hicolor icons (all sizes)
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/packaging/icons/hicolor/"
+        DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor" COMPONENT Runtime)
+
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.

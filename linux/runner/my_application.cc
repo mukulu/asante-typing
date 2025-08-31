@@ -4,6 +4,8 @@
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>
 #endif
+#include <gtk/gtk.h>
+#include <glib.h>
 
 #include "flutter/generated_plugin_registrant.h"
 
@@ -14,9 +16,8 @@ struct _MyApplication {
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
-// Called when first Flutter frame received.
-static void first_frame_cb(MyApplication* self, FlView *view)
-{
+// Show window after the first Flutter frame (avoids white flash on some WMs).
+static void first_frame_cb(MyApplication* self, FlView* view) {
   gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
 }
 
@@ -26,13 +27,31 @@ static void my_application_activate(GApplication* application) {
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
 
-  // Use a header bar when running in GNOME as this is the common style used
-  // by applications and is the setup most users will be using (e.g. Ubuntu
-  // desktop).
-  // If running on X and not using GNOME then just use a traditional title bar
-  // in case the window manager does more exotic layout, e.g. tiling.
-  // If running on Wayland assume the header bar will work (may need changing
-  // if future cases occur).
+  // ---- Window/Icon setup ----------------------------------------------------
+
+  // Try installed icon first (system path), then fall back to a bundled asset
+  // for `flutter run` (dev). Avoid std::filesystem to keep C++14 compatibility.
+  const char* installed_icon =
+      "/usr/share/icons/hicolor/256x256/apps/org.mukulu.asante_typing.png";
+
+  if (g_file_test(installed_icon, G_FILE_TEST_EXISTS)) {
+    gtk_window_set_icon_from_file(window, installed_icon, nullptr);
+  } else {
+    // current_dir/data/flutter_assets/assets/icon/app_icon.png
+    gchar* cwd = g_get_current_dir();
+    gchar* bundled_icon = g_build_filename(
+        cwd, "data", "flutter_assets", "assets", "icon", "app_icon.png", NULL);
+    g_free(cwd);
+
+    if (g_file_test(bundled_icon, G_FILE_TEST_EXISTS)) {
+      gtk_window_set_icon_from_file(window, bundled_icon, nullptr);
+    }
+    g_free(bundled_icon);
+  }
+
+  // (set_icon is unused further, but handy for debugging if needed.)
+
+  // Use a header bar when running in GNOME (common on Ubuntu).
   gboolean use_header_bar = TRUE;
 #ifdef GDK_WINDOWING_X11
   GdkScreen* screen = gtk_window_get_screen(window);
@@ -55,19 +74,22 @@ static void my_application_activate(GApplication* application) {
 
   gtk_window_set_default_size(window, 1280, 720);
 
+  // ---- Flutter view ---------------------------------------------------------
   g_autoptr(FlDartProject) project = fl_dart_project_new();
-  fl_dart_project_set_dart_entrypoint_arguments(project, self->dart_entrypoint_arguments);
+  fl_dart_project_set_dart_entrypoint_arguments(project,
+                                                self->dart_entrypoint_arguments);
 
   FlView* view = fl_view_new(project);
+
+  // Optional: set background color (#000000 = black). Use #00000000 for transparent.
   GdkRGBA background_color;
-  // Background defaults to black, override it here if necessary, e.g. #00000000 for transparent.
   gdk_rgba_parse(&background_color, "#000000");
   fl_view_set_background_color(view, &background_color);
+
   gtk_widget_show(GTK_WIDGET(view));
   gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(view));
 
-  // Show the window when Flutter renders.
-  // Requires the view to be realized so we can start rendering.
+  // Show the window once Flutter renders the first frame.
   g_signal_connect_swapped(view, "first-frame", G_CALLBACK(first_frame_cb), self);
   gtk_widget_realize(GTK_WIDGET(view));
 
@@ -77,39 +99,34 @@ static void my_application_activate(GApplication* application) {
 }
 
 // Implements GApplication::local_command_line.
-static gboolean my_application_local_command_line(GApplication* application, gchar*** arguments, int* exit_status) {
+static gboolean my_application_local_command_line(GApplication* application,
+                                                  gchar*** arguments,
+                                                  int* exit_status) {
   MyApplication* self = MY_APPLICATION(application);
   // Strip out the first argument as it is the binary name.
   self->dart_entrypoint_arguments = g_strdupv(*arguments + 1);
 
   g_autoptr(GError) error = nullptr;
   if (!g_application_register(application, nullptr, &error)) {
-     g_warning("Failed to register: %s", error->message);
-     *exit_status = 1;
-     return TRUE;
+    g_warning("Failed to register: %s", error->message);
+    *exit_status = 1;
+    return TRUE;
   }
 
   g_application_activate(application);
   *exit_status = 0;
-
   return TRUE;
 }
 
 // Implements GApplication::startup.
 static void my_application_startup(GApplication* application) {
-  //MyApplication* self = MY_APPLICATION(object);
-
   // Perform any actions required at application startup.
-
   G_APPLICATION_CLASS(my_application_parent_class)->startup(application);
 }
 
 // Implements GApplication::shutdown.
 static void my_application_shutdown(GApplication* application) {
-  //MyApplication* self = MY_APPLICATION(object);
-
   // Perform any actions required at application shutdown.
-
   G_APPLICATION_CLASS(my_application_parent_class)->shutdown(application);
 }
 
@@ -131,10 +148,7 @@ static void my_application_class_init(MyApplicationClass* klass) {
 static void my_application_init(MyApplication* self) {}
 
 MyApplication* my_application_new() {
-  // Set the program name to the application ID, which helps various systems
-  // like GTK and desktop environments map this running application to its
-  // corresponding .desktop file. This ensures better integration by allowing
-  // the application to be recognized beyond its binary name.
+  // Advertise our app id to the desktop environment for better integration.
   g_set_prgname(APPLICATION_ID);
 
   return MY_APPLICATION(g_object_new(my_application_get_type(),
