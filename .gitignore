@@ -9,7 +9,8 @@
 build/
 web/
 coverage/
-dist
+dist/
+pkgroot/
 
 # IntelliJ / Android Studio / VSCode
 .idea/
