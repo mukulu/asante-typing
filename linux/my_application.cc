@@ -38,29 +38,23 @@ static gchar* exe_dir_path() {
     g_free(link);
     return dir;
   }
-  // Fallback: current directory
   return g_get_current_dir();
 }
-
 
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
-    // Make GTK look up our icon from the theme by name
-    gtk_window_set_default_icon_name("org.munkulu.asante_typing");
-    gtk_window_set_icon_name(window, "org.munkulu.asante_typing");
 
+  // Ask DEs to use our themed icon by name (ties to hicolor install)
+  gtk_window_set_default_icon_name("org.munkulu.asante_typing");
+  gtk_window_set_icon_name(window, "org.munkulu.asante_typing");
 
-  // ---- Window/icon setup ----------------------------------------------------
+  // Hard fallback only if theme/icon cache isn't available (dev/bundle)
   const char* installed_icon =
       "/usr/share/icons/hicolor/256x256/apps/org.munkulu.asante_typing.png";
-
-  if (g_file_test(installed_icon, G_FILE_TEST_EXISTS)) {
-    gtk_window_set_icon_from_file(window, installed_icon, nullptr);
-  } else {
-    // dev/bundle: <exe_dir>/data/flutter_assets/assets/icon/app_icon.png
+  if (!g_file_test(installed_icon, G_FILE_TEST_EXISTS)) {
     g_autofree gchar* exe_dir = exe_dir_path();
     g_autofree gchar* bundled_icon = g_build_filename(
         exe_dir, "data", "flutter_assets", "assets", "icon", "app_icon.png", NULL);
@@ -98,11 +92,9 @@ static void my_application_activate(GApplication* application) {
                                                 self->dart_entrypoint_arguments);
 
   g_autofree gchar* exe_dir = exe_dir_path();
-
-  // Candidates: system first, then next to the executable (bundle)
   g_autofree gchar* bundle_assets = g_build_filename(exe_dir, "data", "flutter_assets", NULL);
   g_autofree gchar* bundle_icu    = g_build_filename(exe_dir, "data", "icudtl.dat", NULL);
-  g_autofree gchar* bundle_aot    = g_build_filename(exe_dir, "lib", "libapp.so", NULL);
+  g_autofree gchar* bundle_aot    = g_build_filename(exe_dir, "lib",  "libapp.so", NULL);
 
   const gchar* assets_candidates[] = {
     "/usr/share/asante_typing/flutter_assets",
@@ -115,12 +107,9 @@ static void my_application_activate(GApplication* application) {
     NULL
   };
   const gchar* aot_candidates[] = {
-    // Ubuntu multi-arch lib dir:
-    "/usr/lib/x86_64-linux-gnu/asante_typing/libapp.so",
-    // Generic lib dir:
-    "/usr/lib/asante_typing/libapp.so",
-    // Bundle Release next to exe:
-    bundle_aot,
+    "/usr/lib/x86_64-linux-gnu/asante_typing/libapp.so", // Ubuntu multi-arch
+    "/usr/lib/asante_typing/libapp.so",                  // Generic
+    bundle_aot,                                          // Bundle Release
     NULL
   };
 
@@ -180,12 +169,10 @@ static gboolean my_application_local_command_line(GApplication* application,
   return TRUE;
 }
 
-// Implements GApplication::startup.
+// Implements GApplication::startup/shutdown.
 static void my_application_startup(GApplication* application) {
   G_APPLICATION_CLASS(my_application_parent_class)->startup(application);
 }
-
-// Implements GApplication::shutdown.
 static void my_application_shutdown(GApplication* application) {
   G_APPLICATION_CLASS(my_application_parent_class)->shutdown(application);
 }
@@ -208,7 +195,7 @@ static void my_application_class_init(MyApplicationClass* klass) {
 static void my_application_init(MyApplication* self) {}
 
 MyApplication* my_application_new() {
-  // Helps DEs map the process to the .desktop entry
+  // Set program name to application ID for better desktop env mapping.
   g_set_prgname(APPLICATION_ID);
 
   return MY_APPLICATION(g_object_new(my_application_get_type(),

@@ -16,6 +16,7 @@ struct _MyApplication {
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
+// Show the window after the first Flutter frame (avoids flashes on some WMs).
 static void first_frame_cb(MyApplication* self, FlView* view) {
   gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
 }
@@ -27,29 +28,38 @@ static gchar* first_existing(const gchar* const* candidates) {
   return NULL;
 }
 
-static gchar* exe_dir() {
+static gchar* exe_dir_path() {
+  // Real directory of the running executable (works for bundle & system install)
   gchar* link = g_file_read_link("/proc/self/exe", NULL);
-  if (link) { gchar* dir = g_path_get_dirname(link); g_free(link); return dir; }
-  return g_get_current_dir();
+  if (link) {
+    gchar* dir = g_path_get_dirname(link);
+    g_free(link);
+    return dir;
+  }
+  return g_get_current_dir(); // very rare fallback
 }
 
+// Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
   GtkWindow* window = GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
-  // Make GTK look up our icon from the theme by name
+
+  // Ask DEs to use our themed icon by name (ties to hicolor install)
   gtk_window_set_default_icon_name("org.munkulu.asante_typing");
   gtk_window_set_icon_name(window, "org.munkulu.asante_typing");
 
-  // Icon: prefer system icon; fall back to bundle icon.
+  // Hard fallback only if theme/icon cache isn't available (dev/bundle)
   const char* sys_icon = "/usr/share/icons/hicolor/256x256/apps/org.munkulu.asante_typing.png";
-  if (g_file_test(sys_icon, G_FILE_TEST_EXISTS)) {
-    gtk_window_set_icon_from_file(window, sys_icon, nullptr);
-  } else {
-    g_autofree gchar* dir = exe_dir();
-    g_autofree gchar* icon = g_build_filename(dir, "data", "flutter_assets", "assets", "icon", "app_icon.png", NULL);
-    if (g_file_test(icon, G_FILE_TEST_EXISTS)) gtk_window_set_icon_from_file(window, icon, nullptr);
+  if (!g_file_test(sys_icon, G_FILE_TEST_EXISTS)) {
+    g_autofree gchar* exe_dir = exe_dir_path();
+    g_autofree gchar* bundled_icon = g_build_filename(
+        exe_dir, "data", "flutter_assets", "assets", "icon", "app_icon.png", NULL);
+    if (g_file_test(bundled_icon, G_FILE_TEST_EXISTS)) {
+      gtk_window_set_icon_from_file(window, bundled_icon, nullptr);
+    }
   }
 
+  // Use a header bar in GNOME (common on Ubuntu).
   gboolean use_header_bar = TRUE;
 #ifdef GDK_WINDOWING_X11
   GdkScreen* screen = gtk_window_get_screen(window);
@@ -69,20 +79,24 @@ static void my_application_activate(GApplication* application) {
   }
   gtk_window_set_default_size(window, 1280, 720);
 
+  // ---- Flutter project & paths ---------------------------------------------
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(project, self->dart_entrypoint_arguments);
 
-  // Build candidate lists (system first, then bundle next to the exe)
-  g_autofree gchar* dir = exe_dir();
-  g_autofree gchar* b_assets = g_build_filename(dir, "data", "flutter_assets", NULL);
-  g_autofree gchar* b_icu    = g_build_filename(dir, "data", "icudtl.dat", NULL);
-  g_autofree gchar* b_aot    = g_build_filename(dir, "lib",  "libapp.so", NULL);
+  g_autofree gchar* exe_dir = exe_dir_path();
+  g_autofree gchar* b_assets = g_build_filename(exe_dir, "data", "flutter_assets", NULL);
+  g_autofree gchar* b_icu    = g_build_filename(exe_dir, "data", "icudtl.dat", NULL);
+  g_autofree gchar* b_aot    = g_build_filename(exe_dir, "lib",  "libapp.so", NULL);
 
   const gchar* assets_cand[] = {
-    "/usr/share/asante_typing/flutter_assets", b_assets, NULL
+    "/usr/share/asante_typing/flutter_assets",
+    b_assets,
+    NULL
   };
   const gchar* icu_cand[] = {
-    "/usr/share/asante_typing/icudtl.dat",     b_icu,    NULL
+    "/usr/share/asante_typing/icudtl.dat",
+    b_icu,
+    NULL
   };
   const gchar* aot_cand[] = {
     "/usr/lib/x86_64-linux-gnu/asante_typing/libapp.so", // Ubuntu multi-arch
@@ -114,6 +128,7 @@ static void my_application_activate(GApplication* application) {
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }
 
+// Implements GApplication::local_command_line.
 static gboolean my_application_local_command_line(GApplication* application, gchar*** arguments, int* exit_status) {
   MyApplication* self = MY_APPLICATION(application);
   self->dart_entrypoint_arguments = g_strdupv(*arguments + 1);
@@ -126,12 +141,15 @@ static gboolean my_application_local_command_line(GApplication* application, gch
   *exit_status = 0; return TRUE;
 }
 
+// Implements GApplication::startup/shutdown.
 static void my_application_startup(GApplication* application) {
   G_APPLICATION_CLASS(my_application_parent_class)->startup(application);
 }
 static void my_application_shutdown(GApplication* application) {
   G_APPLICATION_CLASS(my_application_parent_class)->shutdown(application);
 }
+
+// Implements GObject::dispose.
 static void my_application_dispose(GObject* object) {
   MyApplication* self = MY_APPLICATION(object);
   g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
@@ -148,6 +166,7 @@ static void my_application_class_init(MyApplicationClass* klass) {
 static void my_application_init(MyApplication* self) {}
 
 MyApplication* my_application_new() {
+  // Helps DEs map the process to the .desktop entry
   g_set_prgname(APPLICATION_ID);
   return MY_APPLICATION(g_object_new(my_application_get_type(),
                                      "application-id", APPLICATION_ID,
