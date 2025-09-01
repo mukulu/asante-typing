@@ -1,129 +1,90 @@
 #!/usr/bin/env bash
-set -euo pipefail
+# package_deb.sh — Build a Linux Release, system-install for testing,
+# stage files into pkgroot, and produce a Debian .deb with fpm.
+# This script encodes the exact working sequence you confirmed.
 
-VERSION="${1:-0.0.0}"
-APP_NAME="Asante Typing"
-APP_BIN_NAME="asante-typing"  # launcher name
+set -Eeuo pipefail
+
+# ---- Config you may tweak ----------------------------------------------------
+APP_NAME="asante-typing"                   # Debian package name
+BINARY_NAME="asante_typing"                # Installed binary name
+INSTALL_PREFIX="/usr"                      # FHS system install prefix
+BUILD_TYPE="Release"
+PKG_BUILD_DIR="build/linux/x64/release/pkg/cmake"
 BUNDLE_DIR="build/linux/x64/release/bundle"
-ICON_SRC="assets/icon/app_icon.png"  # Path to the icon in the repository
+PKGROOT="$(pwd)/pkgroot"
 
-# Check if icon exists
-if [[ ! -f "$ICON_SRC" ]]; then
-  echo "Icon file not found: $ICON_SRC" >&2
-  exit 1
+# Version: use env APPVER if set, else read pubspec.yaml, else fallback.
+APPVER="${APPVER:-$(awk -F': *' '/^version:/{print $2; exit}' pubspec.yaml 2>/dev/null || echo '0.1.0')}"
+ARCH="amd64"
+
+VENDOR="John Francis Mukulu <john.f.mukulu@gmail.com>"
+HOMEPAGE="https://mukulu.org"
+LICENSE="MIT"
+DESCRIPTION="Asante Typing – learn touch-typing with interactive lessons."
+# -----------------------------------------------------------------------------
+
+echo "==> Cleaning workspace"
+git clean -xfd || true
+flutter clean
+flutter pub get
+
+echo "==> Flutter Release build (bundle)"
+flutter build linux --release
+
+echo "==> Configure CMake (packaging/FHS mode)"
+rm -rf "${PKG_BUILD_DIR}"
+cmake -S linux -B "${PKG_BUILD_DIR}" \
+  -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+  -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
+  -DASANTE_SYSTEM_INSTALL=ON
+
+echo "==> Build native runner"
+cmake --build "${PKG_BUILD_DIR}" --config "${BUILD_TYPE}"
+
+echo "==> System install for local test (needs sudo)"
+sudo cmake --install "${PKG_BUILD_DIR}"
+
+echo "==> Refresh desktop/icon caches (needs sudo)"
+sudo update-desktop-database || true
+sudo gtk-update-icon-cache -f /usr/share/icons/hicolor || true
+
+echo "==> Stage files into pkgroot exactly as they'd be installed"
+sudo rm -rf "${PKGROOT}"
+sudo mkdir -p "${PKGROOT}"
+# NOTE: using sudo here mirrors your working sequence and avoids permission hiccups
+sudo DESTDIR="${PKGROOT}" cmake --install "${PKG_BUILD_DIR}"
+
+echo "==> Remove any existing ${APP_NAME}*.deb (per your workflow)"
+sudo rm -f ${APP_NAME}*.deb || true
+
+echo "==> Ensure fpm is available (ruby-dev, rubygems, build-essential required)"
+if ! command -v fpm >/dev/null 2>&1; then
+  echo "!! fpm not found. Installing (needs sudo) ..."
+  sudo apt-get update
+  sudo apt-get install -y ruby-dev rubygems build-essential
+  sudo gem install --no-document fpm
 fi
 
-if [[ ! -d "$BUNDLE_DIR" ]]; then
-  echo "Bundle not found: $BUNDLE_DIR" >&2
-  exit 1
-fi
+echo "==> Build .deb with fpm (using sudo as you did)"
+sudo fpm -s dir -t deb \
+  -n "${APP_NAME}" -v "${APPVER}" -a "${ARCH}" \
+  --description "${DESCRIPTION}" \
+  --license "${LICENSE}" \
+  --url "${HOMEPAGE}" \
+  --vendor "${VENDOR}" \
+  -C "${PKGROOT}" .
 
-WORK="dist/linux/pkg"
-DEB_OUT="dist/linux"
-mkdir -p "$WORK/DEBIAN" "$WORK/usr/bin" "$WORK/opt/$APP_BIN_NAME" "$WORK/usr/share/applications" "$WORK/usr/share/pixmaps"
+echo "==> Install the freshly built package (needs sudo)"
+DEB_FILE="${APP_NAME}_${APPVER}_${ARCH}.deb"
+sudo apt install ./"${DEB_FILE}"
 
-if [[ ! -d "$WORK/DEBIAN" ]]; then
-  echo "Failed to create directory: $WORK/DEBIAN" >&2
-  exit 1
-fi
+echo "==> Make the .deb world-writable (per your convenience workflow)"
+sudo chmod a+rwx ${APP_NAME}*.deb || true
 
-# Copy built files
-cp -a "$BUNDLE_DIR/." "$WORK/opt/$APP_BIN_NAME/"
-
-if [[ ! -f "$WORK/opt/$APP_BIN_NAME/asante_typing" ]]; then
-  echo "Main binary not found in $WORK/opt/$APP_BIN_NAME/asante_typing" >&2
-  exit 1
-fi
-
-# Copy icon
-cp "$ICON_SRC" "$WORK/usr/share/pixmaps/$APP_BIN_NAME.png"
-chmod 0644 "$WORK/usr/share/pixmaps/$APP_BIN_NAME.png"
-
-# Simple launcher wrapper
-cat > "$WORK/usr/bin/$APP_BIN_NAME" <<'EOF'
-#!/usr/bin/env bash
-DIR="/opt/asante-typing"
-exec "$DIR/asante_typing" "$@"
-EOF
-chmod +x "$WORK/usr/bin/$APP_BIN_NAME"
-
-# .desktop entry
-cat > "$WORK/usr/share/applications/${APP_BIN_NAME}.desktop" <<EOF
-[Desktop Entry]
-Name=$APP_NAME
-Exec=$APP_BIN_NAME
-Icon=$APP_BIN_NAME
-Type=Application
-Categories=Utility;Education;
-Terminal=false
-EOF
-
-# Control file
-cat > "$WORK/DEBIAN/control" <<EOF
-Package: ${APP_BIN_NAME}
-Version: ${VERSION}
-Section: utils
-Priority: optional
-Architecture: amd64
-Maintainer: John Francis Mukulu SJ <john.f.mukulu@gmail.com>
-Homepage: https://mukulu.org/asante-typing
-Vcs-Git: https://github.com/mukulu/asante-typing.git
-Description: $APP_NAME - typing tutor
- Asante Typing is an open-source typing tutor designed to help users improve
- their typing speed and accuracy. Featuring interactive lessons and customizable
- settings, it supports multiple keyboard layouts and provides real-time feedback
- to enhance touch-typing skills. Ideal for beginners and advanced users alike.
-EOF
-
-# Copyright file
-cat > "$WORK/DEBIAN/copyright" <<EOF
-Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: $APP_NAME
-Upstream-Contact: John Francis Mukulu SJ <john.f.mukulu@gmail.com>
-Source: https://github.com/mukulu/asante-typing
-
-Files: *
-Copyright: 2025 John Francis Mukulu SJ
-License: GPL-3.0
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, version 3.
- .
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- GNU General Public License for more details.
- .
- You should have received a copy of the GNU General Public License
- along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-License: GPL-3.0
- On Debian systems, the complete text of the GNU General Public
- License version 3 can be found in "/usr/share/common-licenses/GPL-3".
-EOF
-
-mkdir -p "$DEB_OUT"
-
-# --- FIX: normalise DEBIAN/ perms to satisfy dpkg-deb ---
-# Some filesystems create dirs with g+s (2775). dpkg-deb requires 0755–0775.
-chmod -R ug-s "$WORK/DEBIAN"
-find "$WORK/DEBIAN" -type d -exec chmod 0755 {} \;
-# control, copyright, conffiles, etc. must be readable (0644)
-find "$WORK/DEBIAN" -maxdepth 1 -type f -not -name 'preinst' -not -name 'postinst' -not -name 'prerm' -not -name 'postrm' -exec chmod 0644 {} \;
-# Maintainer scripts must be executable (0755) if present
-for f in preinst postinst prerm postrm; do
-  [ -f "$WORK/DEBIAN/$f" ] && chmod 0755 "$WORK/DEBIAN/$f"
-done
-# --- END FIX ---
-
-# Debug: List permissions
-ls -lR "$WORK/DEBIAN"
-
-# Check for dpkg-deb
-if ! command -v dpkg-deb >/dev/null; then
-  echo "dpkg-deb is not installed. Please install it (e.g., sudo apt install dpkg)." >&2
-  exit 1
-fi
-
-dpkg-deb --build "$WORK" "${DEB_OUT}/${APP_BIN_NAME}_${VERSION}_amd64.deb"
-echo "Built ${DEB_OUT}/${APP_BIN_NAME}_${VERSION}_amd64.deb"
+echo
+echo "✅ Done."
+echo "Package: ${DEB_FILE}"
+echo "Binary  : ${INSTALL_PREFIX}/bin/${BINARY_NAME}"
+echo
+echo "Tip: Launch via '${BINARY_NAME}' or from your app menu (icon: org.mukulu.asante_typing)."
