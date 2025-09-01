@@ -2,9 +2,7 @@
   "main": [
     {
       "title": "asdf jkl;",
-      "Img": [
-        "img/home-keys-position.jpg"
-      ],
+      "Img": ["img/home-keys-position.jpg"],
       "guide": "<p>All the eight fingers except the thumbs should be placed on the home row. This is done by placing the left forefinger on F and the right forefinger on J. Place the remaining fingers on the keys beside them in a natural manner. So, the left little finger would be on A and the right little finger would be on the ; (semicolon) key. Use the right little finger to remove an error with ← key.</p><p>To type any key, press the key with the finger over it. Use one of the thumbs to press the space bar. Keep your eyes on the screen as you type. Do not look at the keyboard.</p><p>Proceed to the next lesson only when you can type with 2% or less errors and atleast 20 words/minute (WPM). Accuracy is more important than speed for a beginner.</p><p>Note:</p><p>With one hour practice every day, you can master typing in two weeks(up to Unit 15)! One more week for mastering numbers(up to Unit 21). The rest is for full keyboard mastery.</p><p>As you practice, you'll encounter terms related to Bible scriptures and Ignatian spirituality to inspire your learning.</p>",
       "subunits": {
         "Grip": "asdf ;lkj asdf ;lkj asdf ;lkj fdsa jkl; fdsa jkl; asdf fdsa ;lkj jkl; asdf jkl; ;lkj fdsa asdf jkl; ;lkj fdsa ksl; jak; fk;s asl; jas; ;sl; fjas fjk; askl kjf; asdj ;fal dfla ;;ls ;ja; l;ds asdf ;lkj asdf ;lkj fdsa jkl; fdsa jkl; asdf fdsa ;lkj jkl;",
@@ -17,9 +15,7 @@
     },
     {
       "title": "ru",
-      "Img": [
-        "img/forefingers.jpg"
-      ],
+      "Img": ["img/forefingers.jpg"],
       "guide": "<p>Use the left forefinger to type R and the right one to type U. After striking the R or U keys, return the forefingers back to the original position on F or J.</p><p>Practice words inspired by spiritual themes like faith and scripture.</p>",
       "subunits": {
         "Grip": "frfr juju frfr juju; rfrf ujuj rfrf ujuj; jrjr fufu jrjr fufu; rjrj ufuf rjrj ufuf; asdfr ;lkju asdfr ;lkju rfdsa ujkl; rfdsa ujkl; asdfr ujkl; asdfr ujkl; asdfr rfdsa ;lkju ujkl; urfu ujku rfur luru rjur arru ursr druj drur arsufr frrur jurru urrsu uusrr drlursu uslru frsusl arfu jfru frfr juju frfr juju;",
@@ -32,9 +28,7 @@
     },
     {
       "title": "vm",
-      "Img": [
-        "img/forefingers.jpg"
-      ],
+      "Img": ["img/forefingers.jpg"],
       "guide": "<p>Use the left forefinger to type V and the right one to type M.</p><p>Incorporate words related to Jesuit missions and spiritual virtues.</p>",
       "subunits": {
         "Grip": "fvfv jmjm fvfv jmjm; vfvf mjmj vfvf mjmj; jvjv fmfm jvjv fmfm; vjvj mfmf vjvj mfmf; fvrm jmuv fvrm jmuv; asdfv ;lkjm asdfrv ;lkjum asdfvr ;lkjmu avrm mvum mmvm mvlv vvmuv vrmv vmrlm svmvmk avsm rvasm svlmr svmvr dvmkv kmvlv rvlmv amvvm vvma mvmm fvfv jmjm fvfv jmjm;",
@@ -47,9 +41,7 @@
     },
     {
       "title": "ei",
-      "Img": [
-        "img/middlefingers.jpg"
-      ],
+      "Img": ["img/middlefingers.jpg"],
       "guide": "<p>Use the left middle finger to type E and the right one to type I.</p><p>Use words from Bible and Ignatian terms like 'discern' and 'examen'.</p>",
       "subunits": {
         "Grip": "dede kiki dede kiki; eded ikik eded ikik; fefe jiji fefe jiji; efef ijij efef ijij; deki iked deki iked; ekid dike ekid dike; idek kedi idek kedi; aeds fers iukj iuea ediu edil; aeiru iuerr juiee ireel aerij afeei iieei eeeii eieie; iesdi sdiei aidef lijue iuefr ifese eikis iaser uieie; dede kiki dede kiki;",
@@ -62,9 +54,7 @@
     },
     {
       "title": "c,",
-      "Img": [
-        "img/middlefingers.jpg"
-      ],
+      "Img": ["img/middlefingers.jpg"],
       "guide": "<p>Use the left middle finger to type C and the right one to type , (comma).</p><p>Include terms from Catholic catechism and Jesuit constitutions.</p>",
       "subunits": {
         "Grip": "dcdc k,k, dcdc k,k,; cdcd ,k,k cdcd ,k,k; fcfc j,j, fcfc j,j,; cfcf ,j,j cfcf ,j,j; dck, ,kcd dck, ,kcd; ck,d d,kc ck,d d,kc; ,dck kcd, ,dck kcd,; ,,cc cc,, c,c, ,c,c ,ic, c,ac,; c,r;c ac;,; s,c;fd a,cd, ;,,cv vc,a; cv,sk; ;l,vdj vcm, ,mdc cvi, ;i,c m,fc ec;, dcdc k,k, dcdc k,k,;",
@@ -77,9 +67,7 @@
     },
     {
       "title": "gh",
-      "Img": [
-        "img/forefingers.jpg"
-      ],
+      "Img": ["img/forefingers.jpg"],
       "guide": "<p>Use the left forefinger to type G and the right one to type H. After striking the G or H keys, return the forefingers back to the original position on F or J.</p><p>Words like 'grace' and 'high' evoke Ignatian themes of spiritual growth.</p>",
       "subunits": {
         "Grip": "fgfg jhjh fgfg jhjh; gfgf hjhj gfgf hjhj; fhfh gjgj fhfh gjgj; hfhf jgjg hfhf jgjg; asdfg ;lkjh asdfg ;lkjh gfdsa hjkl; gfdsa hjkl; arhg, igdh, ikhvg, lcvhg, mgcfm, ehcgm, lhsgh, uhrgh; igghs, ghmvh, hchga, guehg, lchhg, ghcih, gilgh; fgfg jhjh fgfg jhjh;",
@@ -92,9 +80,7 @@
     },
     {
       "title": "ty",
-      "Img": [
-        "img/forefingers.jpg"
-      ],
+      "Img": ["img/forefingers.jpg"],
       "guide": "<p>Use the left forefinger to type T and the right one to type Y.</p><p>Terms like 'trinity' and 'mystery' relate to Catholic faith.</p>",
       "subunits": {
         "Grip": "ftft jyjy ftft jyjy; tftf yjyj tftf yjyj; fyfy tjtj fyfy tjtj; yfyf jtjt yfyf jtjt; ertyui iuytre ertyui iuytre; asdft ;lkjy asdfy ;lkjt aedtf ;ikyj adert ;kiuy afty ;jyt tety yjkt lyjt gyht athy sytg lhyg shdt svtm ctym vtyy, ,gytyv crttys sctyt l;tiy, kyhat sytay sytty lttys yytym mtyty syght ymtsy yctvy lytvy ;mtcvy sytaty ftft jyjy ftft jyjy;",
@@ -107,9 +93,7 @@
     },
     {
       "title": "bn",
-      "Img": [
-        "img/forefingers.jpg"
-      ],
+      "Img": ["img/forefingers.jpg"],
       "guide": "<p>Use the left forefinger to type B and the right one to type N.</p><p>Words like 'bible' and 'ban' relate to scripture and discernment.</p>",
       "subunits": {
         "Grip": "fbfb jnjn fbfb jnjn; bfbf njnj bfbf njnj; fnfn bjbj fnfn bjbj; nfnf jbjb nfnf jbjb; cvbnm, ,mnbvc cvbnm, ,mnbvc; asdfb ;lkjn asdfn ;lkjb aedbf ;iknj aderb ;kiun afbn ;jnb bebn njkb lnjb gnhb abhn snbg lhng shdb svbm mhnb ,ibmn senbm nbmvn tnvnm dvln; lsvnm avnsm lsvne fbfb jnjn fbfb jnjn;",
@@ -122,9 +106,7 @@
     },
     {
       "title": "wo",
-      "Img": [
-        "img/ringfingers.jpg"
-      ],
+      "Img": ["img/ringfingers.jpg"],
       "guide": "<p>Use the left ring finger to type W and the right one to type O.</p><p>Words like 'world' and 'work' reflect Jesuit mission 'for the greater glory of God'.</p>",
       "subunits": {
         "Grip": "swsw lolo swsw lolo; wsws olol wsws olol; fwfw jojo fwfw jojo; wfwf ojoj wfwf ojoj; swlo olws swlo olws; wlos solw wlos solw; oswl lwso oswl lwso; awss fwrs oulj ouwa wsou wsol; swsw lolo swsw lolo;",
@@ -137,9 +119,7 @@
     },
     {
       "title": "x.",
-      "Img": [
-        "img/ringfingers.jpg"
-      ],
+      "Img": ["img/ringfingers.jpg"],
       "guide": "<p>Use the left ring finger to type X and the right one to type . (dot).</p><p>Terms like 'examen' and 'extra' relate to Ignatian daily reflection.</p>",
       "subunits": {
         "Grip": "sxsx l.l. sxsx l.l.; xsxs .l.l xsxs .l.l; fxfx j.j. fxfx j.j.; xfxf .j.j xfxf .j.j; sxl. .lxs sxl. .lxs; xl.s s.lx xl.s s.lx; .sxl lxs. .sxl lxs.; axss fxrs .ulj .uxa xs.u xs.l; sxsx l.l. sxsx l.l.;sxsx l.l.; xsxs .l.l",
@@ -152,9 +132,7 @@
     },
     {
       "title": "qp",
-      "Img": [
-        "img/littlefingers.jpg"
-      ],
+      "Img": ["img/littlefingers.jpg"],
       "guide": "<p>Use the left little finger to type Q and the right one to type P.</p><p>Words like 'pray' and 'quiet' encourage Ignatian contemplation.</p>",
       "subunits": {
         "Grip": "aqaq opop aqaq opop. qaqa popo qaqa popo, fqfq jpjp fqfq jpjp; qfqf pjpj qfqf pjpj. aqop poqa aqop poqa, qopa apoq qopa apoq; paqo oqap paqo oqap. aqaa fqra puoj puqa qapu qapo. aqaq opop aqaq opop. qaqa popo qaqa popo,",
@@ -167,9 +145,7 @@
     },
     {
       "title": "z/",
-      "Img": [
-        "img/littlefingers.jpg"
-      ],
+      "Img": ["img/littlefingers.jpg"],
       "guide": "<p>Use the left little finger to type Z and the right one to type / (slash).</p><p>Terms like 'zeal' reflect Jesuit apostolic zeal.</p>",
       "subunits": {
         "Grip": "azaz o/o/ azaz o/o/. zaza /o/o zaza /o/o, fzfz j/j/ fzfz j/j/; zfzf /j/j zfzf /j/j. azo/ /oza azo/ /oza, zo/a a/oz zo/a a/oz; /azo oza/ /azo oza/. azaa fzra /uoj /uza za/u za/o. azaz o/o/ azaz o/o/. zaza /o/o zaza /o/o,",
