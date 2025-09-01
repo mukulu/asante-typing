@@ -45,11 +45,11 @@ static void my_application_activate(GApplication* application) {
   GtkWindow* window = GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
 
   // Ask DEs to use our themed icon by name (ties to hicolor install)
-  gtk_window_set_default_icon_name("org.munkulu.asante_typing");
-  gtk_window_set_icon_name(window, "org.munkulu.asante_typing");
+  gtk_window_set_default_icon_name("org.mukulu.asante_typing");
+  gtk_window_set_icon_name(window, "org.mukulu.asante_typing");
 
   // Hard fallback only if theme/icon cache isn't available (dev/bundle)
-  const char* sys_icon = "/usr/share/icons/hicolor/256x256/apps/org.munkulu.asante_typing.png";
+  const char* sys_icon = "/usr/share/icons/hicolor/256x256/apps/org.mukulu.asante_typing.png";
   if (!g_file_test(sys_icon, G_FILE_TEST_EXISTS)) {
     g_autofree gchar* exe_dir = exe_dir_path();
     g_autofree gchar* bundled_icon = g_build_filename(
@@ -89,8 +89,8 @@ static void my_application_activate(GApplication* application) {
   g_autofree gchar* b_aot    = g_build_filename(exe_dir, "lib",  "libapp.so", NULL);
 
   const gchar* assets_cand[] = {
-    "/usr/share/asante_typing/flutter_assets",
-    b_assets,
+    "/usr/share/asante_typing/flutter_assets", // FHS install
+    b_assets,                                  // bundle/dev
     NULL
   };
   const gchar* icu_cand[] = {
@@ -101,7 +101,7 @@ static void my_application_activate(GApplication* application) {
   const gchar* aot_cand[] = {
     "/usr/lib/x86_64-linux-gnu/asante_typing/libapp.so", // Ubuntu multi-arch
     "/usr/lib/asante_typing/libapp.so",                  // Generic
-    b_aot,                                               // Bundle Release
+    b_aot,                                               // bundle Release
     NULL
   };
 

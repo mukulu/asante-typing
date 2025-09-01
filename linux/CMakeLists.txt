@@ -8,7 +8,7 @@ set(BINARY_NAME "asante_typing")
 
 # The unique GTK application identifier for this application.
 # https://wiki.gnome.org/HowDoI/ChooseApplicationID
-set(APPLICATION_ID "org.munkulu.asante_typing")
+set(APPLICATION_ID "org.mukulu.asante_typing")
 
 # Enable FHS system-wide install rules only when packaging.
 # Default OFF so `flutter build linux` never tries to write to /usr/local.
