@@ -21,6 +21,17 @@ static void first_frame_cb(MyApplication* self, FlView* view) {
   gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
 }
 
+// Return the real directory that contains the running executable.
+static gchar* exe_dir_path() {
+  gchar* link = g_file_read_link("/proc/self/exe", NULL);
+  if (link) {
+    gchar* dir = g_path_get_dirname(link);
+    g_free(link);
+    return dir;  // caller owns
+  }
+  return g_get_current_dir();   // rare fallback; caller owns
+}
+
 static gchar* first_existing(const gchar* const* candidates) {
   for (int i = 0; candidates[i] != NULL; ++i) {
     if (g_file_test(candidates[i], G_FILE_TEST_EXISTS)) return g_strdup(candidates[i]);
@@ -28,27 +39,17 @@ static gchar* first_existing(const gchar* const* candidates) {
   return NULL;
 }
 
-static gchar* exe_dir_path() {
-  // Real directory of the running executable (works for bundle & system install)
-  gchar* link = g_file_read_link("/proc/self/exe", NULL);
-  if (link) {
-    gchar* dir = g_path_get_dirname(link);
-    g_free(link);
-    return dir;
-  }
-  return g_get_current_dir(); // very rare fallback
-}
-
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
-  GtkWindow* window = GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
+  GtkWindow* window =
+      GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
 
-  // Ask DEs to use our themed icon by name (ties to hicolor install)
+  // Ask DEs to use our themed icon (matches hicolor install)
   gtk_window_set_default_icon_name("org.mukulu.asante_typing");
   gtk_window_set_icon_name(window, "org.mukulu.asante_typing");
 
-  // Hard fallback only if theme/icon cache isn't available (dev/bundle)
+  // Hard fallback icon for bundle/dev runs
   const char* sys_icon = "/usr/share/icons/hicolor/256x256/apps/org.mukulu.asante_typing.png";
   if (!g_file_test(sys_icon, G_FILE_TEST_EXISTS)) {
     g_autofree gchar* exe_dir = exe_dir_path();
@@ -59,7 +60,7 @@ static void my_application_activate(GApplication* application) {
     }
   }
 
-  // Use a header bar in GNOME (common on Ubuntu).
+  // GNOME header bar where appropriate
   gboolean use_header_bar = TRUE;
 #ifdef GDK_WINDOWING_X11
   GdkScreen* screen = gtk_window_get_screen(window);
@@ -141,15 +142,12 @@ static gboolean my_application_local_command_line(GApplication* application, gch
   *exit_status = 0; return TRUE;
 }
 
-// Implements GApplication::startup/shutdown.
 static void my_application_startup(GApplication* application) {
   G_APPLICATION_CLASS(my_application_parent_class)->startup(application);
 }
 static void my_application_shutdown(GApplication* application) {
   G_APPLICATION_CLASS(my_application_parent_class)->shutdown(application);
 }
-
-// Implements GObject::dispose.
 static void my_application_dispose(GObject* object) {
   MyApplication* self = MY_APPLICATION(object);
   g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
